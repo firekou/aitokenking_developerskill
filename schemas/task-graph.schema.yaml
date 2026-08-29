@@ -1,0 +1,71 @@
+# Task Graph Schema（L3 分解層輸出契約 · cases/<CASE>/task-graph.yaml）
+# 版本 v1.0 · 2026-08-29
+#
+# 核心主張：一個任務要能單獨回答三件事 ——
+#   綁哪條驗收條件、哪條測試會從紅變綠、動哪些檔案。
+# 三者缺一，這個任務就還沒被拆完，只是被命名了。
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: task-graph
+type: object
+required: [case_id, spec, tasks, graph_check]
+properties:
+  case_id: { type: string, pattern: "^CASE-[0-9]{3}$" }
+  spec:    { type: string, description: "★ 指向 L2 產出的 spec.yaml" }
+  phases:
+    type: array
+    description: 路線 C 才有。★ 階段要按「使用者拿得到什麼」切，不是按前端／後端／測試切。
+
+  tasks:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [id, title, satisfies, red_test, touches, depends_on, risk, status]
+      properties:
+        id:    { type: string, pattern: "^T-[0-9]{2}$" }
+        title: { type: string, description: 動詞開頭 }
+        satisfies:
+          type: array
+          minItems: 1
+          description: ★ 綁不到任何 AC 的任務沒有存在理由。
+        red_test:
+          type: string
+          description: >-
+            ★ 現在會 fail 的那條測試。不是形式主義 ——
+            沒有它，L4 開工第一件事會是「先想想怎麼驗」，
+            而那時候他已經在寫實作了，於是測試會被寫成
+            「證明我剛寫的東西是對的」，而不是「證明需求被滿足了」。
+        touches:    { type: array, items: { type: string } }
+        depends_on: { type: array, items: { type: string } }
+        risk:
+          enum: [low, mid, high]
+          description: >-
+            high = 動到資料格式／對外 API／認證／金流／baseline 禁區
+            mid  = 動到多模組共用碼，或沒有既有測試覆蓋
+            low  = 單一模組內、已有測試覆蓋、可獨立回滾
+        parallel_ok:
+          type: boolean
+          description: >-
+            ★ high 一律 false。兩件高風險的事同時做，出事時你分不出是誰弄的。
+            另：只看依賴不看 touches 會讓兩個「可平行」的任務在同一個檔案上打架。
+        estimate:
+          type: string
+          description: >-
+            ★ E5（LLM 推測）。唯一用途是判斷「該不該再拆」。
+            拿它去對客戶承諾交期，是這一層最常見的誤用。
+            超過一個工作天一律再拆 —— 這不是生產力主張，是可回滾性主張。
+        status: { enum: [todo, doing, done, blocked], description: L4 每完成一個節點就回寫 }
+
+  graph_check:
+    type: object
+    required: [acyclic, uncovered_acceptance]
+    properties:
+      acyclic:
+        const: true
+        description: ★ 有環代表分解錯了，不是排序問題。回頭把那兩個任務合併或重切。
+      max_estimate_days: { type: number }
+      uncovered_acceptance:
+        type: array
+        maxItems: 0
+        description: ★ 必須為空。沒有任務對應的驗收條件，就是還沒拆完。

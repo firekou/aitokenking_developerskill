@@ -1,0 +1,16 @@
+{
+  "enabledMcpjsonServers": ["aitokenking"],
+  "permissions": {
+    "allow": [
+      "mcp__aitokenking__list_models",
+      "mcp__aitokenking__get_model",
+      "mcp__aitokenking__list_image_models",
+      "mcp__aitokenking__list_video_models",
+      "mcp__aitokenking__get_balance",
+      "mcp__aitokenking__list_usage",
+      "mcp__aitokenking__list_transactions",
+      "mcp__aitokenking__get_image_generation",
+      "mcp__aitokenking__get_video_generation"
+    ]
+  }
+}

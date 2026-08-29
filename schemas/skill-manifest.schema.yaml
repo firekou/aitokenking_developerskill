@@ -1,0 +1,84 @@
+# Skill Manifest Schema（frontmatter 的兩個宣告區塊）
+# 版本 v1.0 · 2026-08-29
+# 單一事實來源：templates/aitokenking-block.md（閘道）＋ templates/devskills-block.md（產線）
+# 檢核器：scripts/validate_skill.py
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: skill-frontmatter
+type: object
+required: [name, description, x-aitokenking, x-devskills]
+properties:
+
+  # ─────────────────── 閘道宣告（承襲 Media House，端點值不可改）───────────────────
+  x-aitokenking:
+    type: object
+    required: [role, endpoint_mcp, endpoint_api, auth_header, auth_env, register, docs, tools_used, billable]
+    additionalProperties: false
+    properties:
+      role:
+        enum: [required, recommended, optional]
+        description: >-
+          required    = 沒有模型閘道，這支 skill 的主路徑跑不完
+          recommended = 沒有也能跑，但會退化成人工步驟或單模型
+          optional    = 純本機工具，閘道只用於選配的加值步驟
+      endpoint_mcp: { const: "https://api.aitokenking.com.tw/mcp" }
+      endpoint_api: { const: "https://api.aitokenking.com.tw/api/v1" }
+      auth_header:  { const: "X-AItokenKing-Api-Key" }
+      auth_env:     { const: "AITK_API_KEY", description: "★ 金鑰本體不入庫，只存在 shell 環境" }
+      register:     { const: "https://www.aitokenking.com.tw/" }
+      docs:         { const: "https://www.aitokenking.com.tw/assets/docs/zh/index.html#mcp-server" }
+      tools_used:
+        type: array
+        description: |
+          A 組 · 唯讀不扣額度（9 支）：
+            list_models, get_model, list_image_models, list_video_models,
+            get_balance, list_usage, list_transactions,
+            get_image_generation, get_video_generation
+          B 組 · 每次呼叫都扣額度（5 支）：
+            chat_completion, create_message, create_response,
+            create_image_generation, create_video_generation
+        items:
+          enum: [list_models, get_model, list_image_models, list_video_models,
+                 get_balance, list_usage, list_transactions,
+                 get_image_generation, get_video_generation,
+                 chat_completion, create_message, create_response,
+                 create_image_generation, create_video_generation]
+      billable:
+        type: boolean
+        description: >-
+          ★ tools_used 是否包含 B 組工具。宣告必須與事實一致 ——
+          validator 會交叉檢核，因為扣費警示那條 BLOCK 就建立在這個布林值上；
+          填錯它就能關掉整套保護，所以它自己必須被檢核。
+
+  # ─────────────────── 產線宣告（本集群新增）───────────────────
+  x-devskills:
+    type: object
+    required: [layer, handoff_in, handoff_out, mutates]
+    additionalProperties: false
+    properties:
+      layer:
+        enum: [L0, L1, L2, L3, L4, L5, orchestrator]
+        description: >-
+          L0 閘道 / L1 勘查 / L2 細化 / L3 分解 / L4 執行 / L5 治理 / orchestrator 編排器。
+          分層的唯一理由是「六種失敗方式完全不同」——
+          混成一支大 skill，任何一次失敗都只會得到「它跑壞了」這個沒有用的結論。
+      handoff_in:
+        type: string
+        minLength: 1
+        description: 開工前必須存在的檔案。入口層可填「使用者輸入」。
+      handoff_out:
+        type: string
+        minLength: 1
+        description: >-
+          ★ 不得留白。產不出檔案的不是一層，是一段提示詞。
+          交接的是檔案不是對話 —— 契約沒寫，下一層只能靠猜，而猜錯不會報錯，
+          它會安靜地產出一份看起來完全正常的東西。
+      gate:
+        type: string
+        description: 這一層放行的判準。寫成可以用眼睛檢查的句子。缺漏為 WARN。
+      mutates:
+        type: boolean
+        description: >-
+          ★ 是否會寫到 cases/ 以外的地方（原始碼、設定檔、git 歷史、全域設定、套件）。
+          true 時 BLOCK 級要求全文有《回復路徑》章節，且該章節必須寫明
+          「哪些動作還原不了」—— 這是本集群版本的「花掉別人的錢」。

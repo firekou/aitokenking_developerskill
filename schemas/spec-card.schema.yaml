@@ -1,0 +1,90 @@
+# Spec Card Schema（L2 細化層輸出契約 · cases/<CASE>/spec.yaml）
+# 版本 v1.0 · 2026-08-29
+#
+# 這份 schema 的設計只有兩個核心主張：
+#   ① non_goals 不得留白。
+#   ② acceptance 的每一條都要唸得出驗證指令。
+# 少了①，agent 多做的每一件事看起來都像貼心，而你只能靠事後感覺去分辨。
+# 少了②，「做完了」會變成一種感覺，而感覺無法被 L5 檢核。
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: spec-card
+type: object
+required: [case_id, baseline, route, user_story, acceptance, non_goals, yagni_verdict, review, evidence_level]
+properties:
+  case_id:  { type: string, pattern: "^CASE-[0-9]{3}$" }
+  baseline: { type: string, description: "★ 指向 L1 產出的 baseline.md。交接讀檔案，不讀對話。" }
+  route:    { enum: [A, B, C], description: "A 新增 / B 變更提案 / C 缺陷" }
+
+  user_story:
+    type: string
+    description: "身為 <誰>，在 <什麼處境>，我要 <做什麼>，以便 <達成什麼>"
+
+  acceptance:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [id, given, when, then, verify_by]
+      properties:
+        id:    { type: string, pattern: "^AC-[0-9]{2}$" }
+        given: { type: string }
+        when:  { type: string }
+        then:  { type: string }
+        verify_by:
+          type: string
+          description: >-
+            ★ 實際的驗證指令。「使用者體驗要順暢」唸不出指令，不算驗收條件；
+            「pytest tests/test_orders.py::test_missing_items」算。
+            分界線在這裡，不在字數。
+
+  non_goals:
+    type: array
+    minItems: 1
+    description: >-
+      ★ 不得留白。非目標不是禮貌用語，是下游 L5 判定「這是不是超譯」的唯一依據。
+
+  yagni_verdict:
+    type: array
+    minItems: 1
+    description: >-
+      零件 P9（取自 ponytail）。規格驅動最典型的失敗不是規格寫得不好，
+      是規格寫得很完整然後全部被做了。★ 不得全部填 DO。
+    items:
+      type: object
+      required: [item, verdict]
+      properties:
+        item:    { type: string }
+        verdict: { enum: [DO, DEFER, DROP] }
+        reason:  { type: string }
+        reopen_when:
+          type: string
+          description: verdict 為 DEFER 時必填 —— 什麼條件成立就重新提案
+
+  existing_behavior:
+    type: array
+    description: 路線 B 必填。★ 從 baseline 抄，附來源；不得問模型。
+  compatibility:
+    type: object
+    description: 路線 B 必填。呼叫端清單、版本化決定、遷移路徑。找不到呼叫端就寫「未查得」。
+
+  review:
+    type: object
+    required: [status]
+    properties:
+      status:
+        enum: [DUAL_MODEL_CROSS_VENDOR, SINGLE_MODEL, NOT_REVIEWED]
+        description: >-
+          DUAL_MODEL_CROSS_VENDOR 才算互審 —— 同一家供應商的兩個模型不算，
+          它們共享訓練偏好，會一起漏掉同一件事，
+          然後你會得到一份「兩個模型都同意」的錯規格。那比單模型更危險。
+          ★ SINGLE_MODEL 不是錯誤，隱瞞它才是。
+      models: { type: array, items: { type: string } }
+      disagreements:
+        type: array
+        description: ★ 兩模型不一致處一律留著，不得由主模型單方裁決 —— 那通常正是規格真正模糊的地方。
+
+  evidence_level:
+    enum: [E1, E2, E3, E4, E5, E6]
+    description: 使用者口述需求的預設值是 E6。寫成 YAML 不會改變證據強度。
+  open_questions: { type: array }

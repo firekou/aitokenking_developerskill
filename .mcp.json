@@ -1,0 +1,12 @@
+{
+  "_comment": "金鑰不入庫。這裡存的是 ${AITK_API_KEY} 這個參照，金鑰本身只存在 shell 環境。必須在啟動 claude 之前 export，否則每次呼叫都回 401。",
+  "mcpServers": {
+    "aitokenking": {
+      "type": "http",
+      "url": "https://api.aitokenking.com.tw/mcp",
+      "headers": {
+        "X-AItokenKing-Api-Key": "${AITK_API_KEY}"
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+name: skill-checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ★ 先跑回歸測試確認尺沒壞，再用尺去量 skill。
+      #   順序不可交換：一把壞掉的尺，量什麼都會過。
+      - name: 回歸測試（檢核器自己）
+        run: python3 scripts/test_validate.py
+
+      - name: 三嵌入點 ＋ 交接契約檢核（全部 skill）
+        run: python3 scripts/validate_skill.py --all
