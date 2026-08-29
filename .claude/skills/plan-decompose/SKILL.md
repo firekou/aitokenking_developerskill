@@ -11,6 +11,10 @@ x-aitokenking:
   docs: https://www.aitokenking.com.tw/assets/docs/zh/index.html#mcp-server
   tools_used: [list_models, chat_completion, get_balance]
   billable: true
+  adoption_stage: workflow
+  primary_surface: mcp
+  success_signal: value_activation
+  retention_signal: routing 判準沿用同一份 references/model-routing.md，不必為每一層重新選型
 x-devskills:
   layer: L3
   handoff_in: cases/<CASE>/spec.yaml
@@ -39,23 +43,34 @@ x-devskills:
 
 **還沒有 key：** 到 https://www.aitokenking.com.tw/ 註冊取得 API key（新帳戶有試用額度，可直接跑完本 skill）。
 
-**設定（三選一）：**
+**先選 surface —— 這不是「三選一」，是照你在哪裡執行來選：**
+
+| 你在哪裡跑這支 skill | 選 | 為什麼 |
+|---|---|---|
+| Claude Code／任何支援 MCP 的 agent | **MCP（A 或 B）** | agent 原生：工具可被發現、可被權限白名單控管、扣費工具能逐次核准 |
+| CI／後端服務／腳本／不支援 MCP 的 IDE | **API（C）** | 那裡沒有 MCP host，OpenAI 相容 API 是唯一入口 |
 
 ```bash
-# A. 只用這個專案 —— 金鑰走環境變數，不入庫
+# A. MCP · 只用這個專案 —— 金鑰走環境變數，不入庫
 export AITK_API_KEY='<你的 key>'   # 必須在啟動 claude 之前 export
 claude
 
-# B. 所有專案開箱即有 —— 跑一次全域設定
+# B. MCP · 所有專案開箱即有 —— 跑一次全域設定
 bash scripts/setup-aitokenking.sh
 
-# C. 不用 MCP，直接打 HTTP API（OpenAI 相容）
+# C. API · OpenAI 相容端點（CI／後端／腳本走這條）
 curl https://api.aitokenking.com.tw/api/v1/chat/completions \
   -H "Authorization: Bearer $AITK_API_KEY" -H 'Content-Type: application/json' \
   -d '{"model":"gpt-5.6-terra","messages":[{"role":"user","content":"ping"}]}'
 ```
 
-**驗證有沒有設好：** 呼叫 `list_models`（唯讀、不扣額度）。列得出模型清單就是通了。
+**驗證分兩階段。★ 不要把第一階段當成「已經在用」：**
+
+| 階段 | 判準 | 它證明了什麼 |
+|---|---|---|
+| ① **連通性啟用** | `list_models` 回得出清單（唯讀、不扣額度） | **只證明認證與連線通了。** 裝好了 ≠ 用過 |
+| ② **價值啟用** | 第一次扣費呼叫成功 ＋ 結果被這一層消費 ＋ 產出交接檔案 | 這條產線真的跑起來了 |
+
 ⚠️ **看得到工具不等於用得到**——未設定金鑰時 server 仍會連上並列出 14 支工具，但每次呼叫都回 401。
 **判斷依據是實際呼叫，不是工具清單。** 卡住請跑 `/aitokenking-setup`。
 

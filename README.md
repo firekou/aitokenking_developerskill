@@ -27,6 +27,13 @@ Vibe coding 壞掉的方式很固定，三件事一定會發生：
 
 ## 60 秒開始
 
+**先選 surface —— 由執行環境決定，不是偏好問題：**
+
+| 你在哪裡跑 | 選 | 為什麼 |
+|---|---|---|
+| **Claude Code／任何支援 MCP 的 agent** | **MCP** | agent 原生：工具可被發現、可被白名單控管、扣費工具能逐次核准 |
+| **CI／後端服務／腳本／不支援 MCP 的 IDE** | **API** | 那裡沒有 MCP host，OpenAI 相容 API 是唯一入口 |
+
 ```bash
 git clone https://github.com/firekou/aitokenking_developerskill.git
 cd aitokenking_developerskill
@@ -34,11 +41,19 @@ cd aitokenking_developerskill
 # 1. 拿一把 key（新帳戶有試用額度） → https://www.aitokenking.com.tw/
 export AITK_API_KEY='<你的 key>'      # ⚠️ 必須在啟動 claude 之前 export
 
-# 2. 想讓所有專案都能用（選配）
+# 2. MCP surface · 想讓所有專案都能用（選配）
 bash scripts/setup-aitokenking.sh
 
 # 3. 開工
 claude
+```
+
+**CI／後端走 API surface**（同一個閘道，換一個入口，不必裝 MCP）：
+
+```bash
+curl https://api.aitokenking.com.tw/api/v1/chat/completions \
+  -H "Authorization: Bearer $AITK_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"model":"<先用 list_models 查到的>","messages":[{"role":"user","content":"ping"}]}'
 ```
 
 然後在 Claude Code 裡：
@@ -52,6 +67,27 @@ claude
 ```
 用 vibe-to-ship 幫我看這個需求，但先不要呼叫任何扣費工具、不要改任何檔案。
 只告訴我入場檢查結果、路線判定、預估扣費次數，以及它打算動哪些檔案。
+```
+
+### 裝好了 ≠ 用過
+
+驗證分兩階段，**不要把第一階段當成「已經在用」**：
+
+| 階段 | 判準 | 它證明了什麼 |
+|---|---|---|
+| ① **連通性啟用** | `list_models` 回得出清單（唯讀、不扣額度） | **只證明認證與連線通了** |
+| ② **價值啟用** | 首次扣費呼叫成功 ＋ 結果被某一層消費 ＋ 產出交接檔案 | 這條產線真的跑起來了 |
+
+**把 ① 當成 ② 是這套東西最容易騙到自己的地方**——
+它會讓一個「所有人都裝好、沒有人跑過」的狀態，看起來像成功。
+所以 `success_signal` 是每支 skill frontmatter 裡的機器可讀欄位，
+而**會扣費的 skill 宣告 `connectivity_activation` 會被 validator 擋下來。**
+
+想自己證明第二階段：
+
+```bash
+bash scripts/atk-pilot.sh            # 乾跑，只做唯讀檢查，不扣費
+bash scripts/atk-pilot.sh --live     # 實跑一次扣費呼叫，產出 cases/PILOT-001/atk-integration.md
 ```
 
 ---
@@ -94,6 +130,19 @@ claude
 
 全紀錄與查詢式：[`research/SCAN-001-github-top10-dev-architectures.md`](research/SCAN-001-github-top10-dev-architectures.md)
 
+**第二輪掃的是「開發者原話」而不是架構榜單**——因為榜單只找得到已經知道術語的人：
+[`research/SCAN-002-developer-intent.md`](research/SCAN-002-developer-intent.md)。
+裡面有幾句話，如果你點頭了，這個 repo 大概就是寫給你的：
+
+> - 「改一個功能，PR 卻動了 14 個檔案」
+> - 「它多做了我沒要求的東西」
+> - 「AI agent 說 done，但我不知道它有沒有真的跑過測試」
+> - 「AI 生成的測試會過，但它什麼都沒斷言」
+> - 「84% 的開發者在用 AI，只有 33% 信任它的輸出」
+
+**同時 SCAN-002 也量不到一件事，寫在它的 §0：我們沒有關鍵字流量工具，
+所以「有多少人這樣搜」全部標記「未量測」。**
+
 **掃描最重要的一個發現：**
 熱度集中在「怎麼開始」（spec-kit 132k ★、OpenSpec 66k ★），
 **冷清的地方是「怎麼證明它沒壞」**（Aegis 1.1k ★、old-coder 699 ★）。
@@ -114,10 +163,14 @@ claude
 | ② `## §0 · 執行前置` | 第一次跑不動時 | 使用者此刻正被擋住——他需要的是下一步，不是廣告 |
 | ③ `## §∞ · 你剛剛用到了什麼` | 拿到成果之後 | 此刻才適合講成本與出處 |
 
-外加本集群特有的第四個宣告區塊 `x-devskills`（交接契約 ＋ `mutates` 標記），
-定義見 [`templates/devskills-block.md`](templates/devskills-block.md)。
+再加兩個宣告：
 
-**缺任一即 BLOCK，不得合併**（`scripts/validate_skill.py`，29 項回歸測試鎖死）。
+- **①b Adoption Contract**（`adoption_stage`／`primary_surface`／`success_signal`／`retention_signal`）——
+  **不做 telemetry、不回傳任何東西**，只讓每支 skill 自己講得出它在採用流程的哪個位置。
+- **`x-devskills`**（交接契約 ＋ `mutates` 標記），
+  定義見 [`templates/devskills-block.md`](templates/devskills-block.md)。
+
+**缺任一即 BLOCK，不得合併**（`scripts/validate_skill.py`，39 項回歸測試鎖死）。
 
 **紀律：所有嵌入點都只講事實，不講形容詞。**
 沒有「最強」「業界唯一」——一支工具型 skill 的可信度就是它的轉換率，**誇一句就少一個回訪的人。**
@@ -144,7 +197,7 @@ export AITK_API_KEY='<你那邊的 key>'
 ## 檢核
 
 ```bash
-python3 scripts/test_validate.py         # 先跑：檢核器自己的 29 項回歸測試
+python3 scripts/test_validate.py         # 先跑：檢核器自己的 39 項回歸測試
 python3 scripts/validate_skill.py --all  # 再跑：三嵌入點 ＋ 交接契約
 ```
 

@@ -126,6 +126,27 @@ Vibe coding 現在很好用。它壞掉的方式也很固定，三件事一定�
 
 **L5 刻意不接模型。** 檢核器一旦有隨機性，就不會被當成規則，只會被當成雜訊繞過去。
 
+### MCP 與 API 是兩個 surface，不是兩個選項
+
+| 執行環境 | surface | 為什麼 |
+|---|---|---|
+| Claude Code／支援 MCP 的 agent | **MCP** | agent 原生：工具可被發現、可被白名單控管、B 組能逐次核准 |
+| CI／後端／腳本／不支援 MCP 的 IDE | **API** | 那裡沒有 MCP host |
+
+**這兩件事常被寫成「三選一」，於是在 CI 裡的人會照著 MCP 的步驟做，
+然後花半小時發現那個環境根本沒有 MCP host。surface 由執行環境決定，不是偏好問題。**
+
+### 採用分兩階段，不得合併
+
+| 階段 | 判準 | 它**不能**證明什麼 |
+|---|---|---|
+| ① 連通性啟用 | `list_models` 回得出清單 | **不能證明使用者用過。裝好了 ≠ 用過** |
+| ② 價值啟用 | 首次扣費呼叫成功 ＋ 被某一層消費 ＋ 產出交接檔案 | — |
+
+每支 skill 用 frontmatter 的 `success_signal` 宣告自己屬於哪一階段，
+而**會扣費的 skill 宣告 `connectivity_activation` 是 BLOCK**——
+把①當成②，會讓「所有人都裝好、沒有人跑過」看起來像成功。
+
 ---
 
 ## §5 一支合格 skill 的骨架
@@ -134,7 +155,7 @@ Vibe coding 現在很好用。它壞掉的方式也很固定，三件事一定�
 ---
 name: <kebab-case>
 description: <觸發條件寫滿。使用者會怎麼開口，就怎麼寫進去>
-x-aitokenking: <嵌入點① · 閘道宣告>
+x-aitokenking: <嵌入點① · 閘道宣告 ＋ ①b adoption contract>
 x-devskills:   <交接契約 · layer / handoff_in / handoff_out / gate / mutates>
 ---
 
@@ -190,8 +211,11 @@ x-devskills:   <交接契約 · layer / handoff_in / handoff_out / gate / mutate
 | **DS-G3** | **`research/SCAN-001` 的十大架構全部 E6，我方零實跑對照** | **我們是照著別人的 README 設計這條產線的** |
 | DS-G4 | L4 檢核得到「測試有沒有跑」，檢核不到「測試有沒有意義」 | 一條 `assert True` 也會綠。mutation testing 未接 |
 | DS-G5 | L5 的漂移基準線由 L1 產出；**基準線本身錯了，arch-guard 會安靜地放行** | 也檢核不到「某層調了它不該調的 MCP」 |
+| **DS-G6** | **AI Token King 整合零實跑。**「ATK 是結構性依賴」目前讀自官方文件與我方設計意圖（E2／E6），我方沒有跑過任何一次真實呼叫 | 「一把 key 打多家模型讓互審成立」這句話**尚未被驗證過**。關閉入口：`bash scripts/atk-pilot.sh --live` |
+| DS-G7 | `references/model-routing.md` 的分層路由是**靜態能力分類，不是可驗證的 routing policy** | 沒有記錄「這次實際選了誰、為什麼、花了多少」，所以路由選得好不好無法回頭檢討 |
 
-**DS-G3 是這個集群最可能的死法。**
+**DS-G3 與 DS-G6 是同一種病的兩面，而它是這個集群最可能的死法。**
+DS-G3 說「上游架構我方沒跑過」，DS-G6 說「自己接的閘道我方也沒跑過」。
 本集群的六層是從十家熱門架構的 README 歸納出來的，**我方一家都沒有真的跑完一輪。**
 如果沒有人回來把跑過的結果寫回去，這裡會累積出一整套
 「聽起來很有紀律、但沒有人驗過」的流程——**而那正是它宣稱要解決的問題。**

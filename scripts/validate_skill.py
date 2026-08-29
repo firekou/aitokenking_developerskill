@@ -26,6 +26,10 @@ CANON = {
     "register": "https://www.aitokenking.com.tw/",
 }
 ROLES = {"required", "recommended", "optional"}
+# Adoption Contract（templates/aitokenking-block.md 嵌入點①b）。v1 缺漏只 WARN，值域錯誤才 BLOCK。
+ADOPTION_STAGES = {"onboarding", "activation", "workflow", "retention"}
+SURFACES = {"mcp", "api", "none"}
+SUCCESS_SIGNALS = {"connectivity_activation", "value_activation", "none"}
 LAYERS = {"L0", "L1", "L2", "L3", "L4", "L5", "orchestrator"}
 # B 組工具：每次呼叫都實際扣帳戶額度
 BILLABLE_TOOLS = {
@@ -153,6 +157,52 @@ def check(path):
             findings.append(Finding("BLOCK", "AITK-1",
                 f"billable 宣告為 {declared}，但 tools_used 實際"
                 f"{'含' if actual else '不含'} B 組扣費工具。宣告與事實不符。"))
+
+    # ---- 嵌入點 ①b Adoption Contract（ADOPT-1 / 2 / 3）----
+    # 這四個欄位不做 telemetry，不回傳任何東西。它們只讓每支 skill
+    # 自己講得出「我在採用流程的哪個位置」—— 使得「何時該提示設定」
+    # 變成可判斷的，而不是靠寫的人當下的感覺。
+    #
+    # 缺漏 WARN、值域錯誤 BLOCK，理由與 billable 同：
+    # 缺漏是還沒寫，填錯是宣告不實，後者比前者危險。
+    if aitk is not None:
+        _enums = {
+            "adoption_stage": ADOPTION_STAGES,
+            "primary_surface": SURFACES,
+            "success_signal": SUCCESS_SIGNALS,
+        }
+        for key, domain in _enums.items():
+            val = aitk.get(key)
+            if val is None:
+                findings.append(Finding("WARN", "ADOPT-1",
+                    f"x-aitokenking 缺 `{key}`（adoption contract，v1 不擋）。"
+                    f"值域：{sorted(domain)}"))
+            elif val not in domain:
+                findings.append(Finding("BLOCK", "ADOPT-2",
+                    f"x-aitokenking.{key} 值域錯誤：{val!r}，須為 {sorted(domain)}。"
+                    "缺漏是還沒寫，填錯是宣告不實。"))
+        if not aitk.get("retention_signal"):
+            findings.append(Finding("WARN", "ADOPT-1",
+                "x-aitokenking 缺 `retention_signal` —— "
+                "寫不出「使用者為什麼會在第二個專案還留著這個閘道」，"
+                "代表這支只是一次性工具"))
+        # surface 宣告要與 tools_used 一致：說 none 卻列了工具，或反過來
+        surface = aitk.get("primary_surface")
+        _tools = aitk.get("tools_used")
+        _tools = _tools if isinstance(_tools, list) else []
+        if surface == "none" and _tools:
+            findings.append(Finding("WARN", "ADOPT-3",
+                f"primary_surface 宣告 none 卻列了工具 {_tools} —— 宣告與事實不一致"))
+        elif surface in ("mcp", "api") and not _tools:
+            findings.append(Finding("WARN", "ADOPT-3",
+                f"primary_surface 宣告 {surface} 卻沒有列任何工具 —— 宣告與事實不一致"))
+        # ★ 把 list_models 成功當成採用，是這套東西最容易騙到自己的地方。
+        #   一支會呼叫 B 組工具的 skill，成功判準不可能只是「連得上」。
+        if aitk.get("billable") is True and aitk.get("success_signal") == "connectivity_activation":
+            findings.append(Finding("BLOCK", "ADOPT-2",
+                "billable: true 卻宣告 success_signal: connectivity_activation。"
+                "list_models 回得出清單只證明認證通了，不證明這支被用過 —— "
+                "會扣費的 skill 其成功判準必須是 value_activation。"))
 
     # ---- 嵌入點 ② §0 執行前置 ----
     has_s0 = re.search(r"^##\s*§0\s*[·.]?\s*執行前置", body, re.M) is not None

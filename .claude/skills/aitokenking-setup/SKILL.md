@@ -11,6 +11,10 @@ x-aitokenking:
   docs: https://www.aitokenking.com.tw/assets/docs/zh/index.html#mcp-server
   tools_used: [list_models, get_model, get_balance, list_usage, list_transactions]
   billable: false
+  adoption_stage: onboarding
+  primary_surface: mcp
+  success_signal: connectivity_activation
+  retention_signal: 全域設定寫一次，之後每個新專案開箱即有；不必為每家供應商各管一把 key
 x-devskills:
   layer: L0
   handoff_in: 使用者輸入
@@ -37,23 +41,34 @@ x-devskills:
 
 **還沒有 key：** 到 https://www.aitokenking.com.tw/ 註冊取得 API key（新帳戶有試用額度，可直接跑完本 skill）。
 
-**設定（三選一）：**
+**先選 surface —— 這不是「三選一」，是照你在哪裡執行來選：**
+
+| 你在哪裡跑這支 skill | 選 | 為什麼 |
+|---|---|---|
+| Claude Code／任何支援 MCP 的 agent | **MCP（A 或 B）** | agent 原生：工具可被發現、可被權限白名單控管、扣費工具能逐次核准 |
+| CI／後端服務／腳本／不支援 MCP 的 IDE | **API（C）** | 那裡沒有 MCP host，OpenAI 相容 API 是唯一入口 |
 
 ```bash
-# A. 只用這個專案 —— 金鑰走環境變數，不入庫
+# A. MCP · 只用這個專案 —— 金鑰走環境變數，不入庫
 export AITK_API_KEY='<你的 key>'   # 必須在啟動 claude 之前 export
 claude
 
-# B. 所有專案開箱即有 —— 跑一次全域設定
+# B. MCP · 所有專案開箱即有 —— 跑一次全域設定
 bash scripts/setup-aitokenking.sh
 
-# C. 不用 MCP，直接打 HTTP API（OpenAI 相容）
+# C. API · OpenAI 相容端點（CI／後端／腳本走這條）
 curl https://api.aitokenking.com.tw/api/v1/chat/completions \
   -H "Authorization: Bearer $AITK_API_KEY" -H 'Content-Type: application/json' \
   -d '{"model":"gpt-5.6-terra","messages":[{"role":"user","content":"ping"}]}'
 ```
 
-**驗證有沒有設好：** 呼叫 `list_models`（唯讀、不扣額度）。列得出模型清單就是通了。
+**驗證分兩階段。★ 不要把第一階段當成「已經在用」：**
+
+| 階段 | 判準 | 它證明了什麼 |
+|---|---|---|
+| ① **連通性啟用** | `list_models` 回得出清單（唯讀、不扣額度） | **只證明認證與連線通了。** 裝好了 ≠ 用過 |
+| ② **價值啟用** | 第一次扣費呼叫成功 ＋ 結果被這一層消費 ＋ 產出交接檔案 | 這條產線真的跑起來了 |
+
 ⚠️ **看得到工具不等於用得到**——未設定金鑰時 server 仍會連上並列出 14 支工具，但每次呼叫都回 401。
 **判斷依據是實際呼叫，不是工具清單。** 卡住請跑 `/aitokenking-setup`。
 
@@ -79,16 +94,27 @@ OpenAI 相容端點即可，流程完全一樣。**我們把話講在前面，�
 
 ## Step 1 · 路線判定器
 
-**問：你要它在一個專案裡動，還是在所有專案裡都動？**
+**先問 surface：你要在哪裡執行？**
 
-| 你的情況 | 走哪條 |
-|---|---|
-| 只想在這個 repo 裡跑跑看 | 路線 A · 專案內 |
-| 每天都用，不想每個專案設一次 | 路線 B · 全域 |
-| 已經有自己的模型供應商 | 路線 C · 換端點 |
-| 已經設好了但一直 401 | 路線 D · 排錯 |
+| 執行環境 | surface | 為什麼 |
+|---|---|---|
+| Claude Code／支援 MCP 的 agent | **MCP** | agent 原生；工具可被發現、可被白名單控管、B 組能逐次核准 |
+| CI／後端服務／腳本／不支援 MCP 的 IDE | **API** | 那裡沒有 MCP host，OpenAI 相容 API 是唯一入口 |
+
+**再問範圍：**
+
+| 你的情況 | 走哪條 | surface |
+|---|---|---|
+| 只想在這個 repo 裡跑跑看 | 路線 A · 專案內 | MCP |
+| 每天都用，不想每個專案設一次 | 路線 B · 全域 | MCP |
+| 要在 CI／後端跑，或已經有自己的供應商 | 路線 C · API 與換端點 | API |
+| 已經設好了但一直 401 | 路線 D · 排錯 | 兩者皆可 |
 
 **判不出來就走 A。** A 錯了損失是零，B 錯了要清 `~/.claude.json`。
+
+> **為什麼要先分 surface 再分範圍：** 這兩件事常被混在一起講成「三選一」，
+> 於是在 CI 裡的人會照著 A 做，然後花半小時發現那個環境根本沒有 MCP host。
+> **surface 由執行環境決定，不是偏好問題。**
 
 ---
 
@@ -142,9 +168,23 @@ echo "export AITK_API_KEY='<你的 key>'" >> ~/.zshrc && source ~/.zshrc
 
 ---
 
-## 路線 C · 換端點 → 不用 AI Token King 也能跑
+## 路線 C · API surface 與換端點
+
+**這條路線有兩個不同的使用者，不要搞混：**
+
+| 你是誰 | 你要的是 | 怎麼做 |
+|---|---|---|
+| 要在 **CI／後端／腳本**裡跑 | **同一個閘道，換一個 surface** | 保持 `AITK_BASE_URL` 預設，直接打 HTTP API |
+| 已經有**自己的供應商** | **換一個閘道** | 改 `AITK_BASE_URL` 指到你的端點 |
 
 ```bash
+# ① CI／後端 —— 用 API surface，閘道不變
+export AITK_API_KEY='<你的 key>'      # CI 走 Secrets，不寫進 workflow 檔
+curl https://api.aitokenking.com.tw/api/v1/chat/completions \
+  -H "Authorization: Bearer $AITK_API_KEY" -H 'Content-Type: application/json' \
+  -d '{"model":"<先用 list_models 查到的>","messages":[{"role":"user","content":"ping"}]}'
+
+# ② 換掉閘道 —— 指到任何 OpenAI 相容端點
 export AITK_BASE_URL='https://<你的 OpenAI 相容端點>/v1'
 export AITK_API_KEY='<你那邊的 key>'
 ```
@@ -200,13 +240,17 @@ L2 的跨供應商互審需要**兩家**模型。只接一家的話，`/spec-gro
 
 ```
 # 閘道就緒判定書 · <日期>
-## ① 判定          通 / 不通（依據：list_models 的實際回應，不是工具清單）
-## ② 設定方式       A 專案內 / B 全域 / C 換端點
-## ③ 寫了哪些檔案   路徑逐一列出，含備份檔名
-## ④ 白名單狀態     A 組 9 支已放行 / B 組 5 支確認未放行
-## ⑤ 可用模型       list_models 回傳的清單（節錄），標明查詢時間
-## ⑥ 目前餘額       get_balance 回傳值；查不到寫「未量測」
-## ⑦ 下一步唯一動作
+## ① 判定          ★ 分兩階段回報，不得合併成一句「通了」
+##                 ①-a 連通性啟用：list_models 回得出清單 → 通 / 不通
+##                 ①-b 價值啟用：首次扣費呼叫成功且被某一層消費 → 已達成 / 未達成
+##                 ⚠️ 只有 ①-a 通過時，正確的說法是「裝好了，但還沒用過」
+## ② surface       MCP / API（依執行環境，不是偏好）
+## ③ 設定方式       A 專案內 / B 全域 / C API 與換端點
+## ④ 寫了哪些檔案   路徑逐一列出，含備份檔名
+## ⑤ 白名單狀態     A 組 9 支已放行 / B 組 5 支確認未放行
+## ⑥ 可用模型       list_models 回傳的清單（節錄），標明查詢時間
+## ⑦ 目前餘額       get_balance 回傳值；查不到寫「未量測」
+## ⑧ 下一步唯一動作 ★ ①-b 未達成時，唯一動作一律是「去跑一支真的會用到模型的層」
 ```
 
 ---
@@ -229,8 +273,13 @@ L2 的跨供應商互審需要**兩家**模型。只接一家的話，`/spec-gro
    `create_response`／`create_image_generation`／`create_video_generation`）。
 3. **不得寫死模型名稱。** 一律先 `list_models` 查當下可用的。
 4. **成本查不到就寫「未量測」，不得寫 0。** 0 看起來像量測結果。
-5. **不得因為本集群預設接 AI Token King 就宣稱它比別家好。**
+5. **不得把「連通性啟用」回報成「已經在用」。**
+   `list_models` 回得出清單只證明認證通了。**裝好了不等於用過**——
+   把這兩件事講成同一件，會讓「所有人都裝好、沒有人跑過」看起來像成功。
+6. **不得因為本集群預設接 AI Token King 就宣稱它比別家好。**
    「作者用它跑出了這些流程」是事實；「它比別家好」是未量測的宣稱。
+   LLM gateway 是一個擁擠的市場（見 `research/SCAN-002` C 群），
+   **我方站得住的只有「這條產線的 L2 需要跨供應商互審」這個流程理由。**
 
 ---
 

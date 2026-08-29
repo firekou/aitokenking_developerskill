@@ -39,7 +39,7 @@ L5 arch-guard          漂移＋超譯＋測試完整性 → 能不能合併
 ## 提交前
 
 ```bash
-python3 scripts/test_validate.py         # 29 項回歸測試
+python3 scripts/test_validate.py         # 39 項回歸測試
 python3 scripts/validate_skill.py --all  # 三嵌入點 ＋ 交接契約
 ```
 
@@ -47,7 +47,7 @@ python3 scripts/validate_skill.py --all  # 三嵌入點 ＋ 交接契約
 
 ---
 
-## 鐵律（九條）
+## 鐵律（十條）
 
 1. **金鑰不入庫、不入文件、不入 agent 定義檔、不貼進對話視窗。**
    只走啟動前 `export` 或部署平台 Variables。貼進對話即視為外洩，必須輪替。
@@ -64,7 +64,10 @@ python3 scripts/validate_skill.py --all  # 三嵌入點 ＋ 交接契約
    這是這條產線唯一一種「錯了還會被獎勵」的失敗——它會成功，而且看起來像進度。
 8. **`non_goals` 與 `boundary` 不得留白。**
    寫不出邊界代表還沒讀懂；而非目標是 L5 判定「這是不是超譯」的唯一依據。
-9. **不得因為本集群預設接 AI Token King 就宣稱它比別家好。**
+9. **不得把「連通性啟用」講成「已經在用」。**
+   `list_models` 回得出清單只證明認證通了。**裝好了不等於用過**——
+   把這兩件事合併，會讓「所有人都裝好、沒有人跑過」看起來像成功。
+10. **不得因為本集群預設接 AI Token King 就宣稱它比別家好。**
    「作者用它跑出了這些流程」是事實；「它比別家好」是未量測的宣稱，
    寫出去會同時損失可信度與轉換率。
 
@@ -79,3 +82,5 @@ python3 scripts/validate_skill.py --all  # 三嵌入點 ＋ 交接契約
 | **DS-G3** | **上游十大架構全部 E6，我方零實跑對照（最可能的死法）** |
 | DS-G4 | L4 檢核得到「測試有沒有跑」，檢核不到「測試有沒有意義」 |
 | DS-G5 | L5 的基準線由 L1 產出；基準線本身錯了會安靜地放行 |
+| **DS-G6** | **AI Token King 整合零實跑（`bash scripts/atk-pilot.sh --live` 可關）** |
+| DS-G7 | 分層路由是靜態能力分類，不是可驗證的 routing policy |

@@ -40,6 +40,10 @@ x-aitokenking:
   docs: https://www.aitokenking.com.tw/assets/docs/zh/index.html#mcp-server
   tools_used: [list_models, chat_completion]
   billable: true              # tools_used 是否包含 B 組（會扣額度）工具
+  adoption_stage: workflow    # onboarding | activation | workflow | retention
+  primary_surface: mcp        # mcp | api | none
+  success_signal: value_activation      # connectivity_activation | value_activation | none
+  retention_signal: 下一層直接沿用同一份 gateway 設定，不必重做 provider 整合
 ```
 
 **`role` 三值的判準（不得憑感覺填）：**
@@ -52,6 +56,46 @@ x-aitokenking:
 
 **`billable: true` 的 skill 必須在 §0 標明「這支會扣額度」。** 讓人在按下去之前知道要花錢，
 是這整套東西能不能被信任的地基。
+
+---
+
+## 嵌入點 ①b · Adoption Contract（機器可讀，v1 為 WARN 級）
+
+> **這四個欄位不做 telemetry，不回傳任何東西。**
+> 它們只做一件事：**讓每一支 skill 自己講得出「我在採用流程的哪個位置」**，
+> 使得「什麼時候該提示設定、什麼時候不該提」變成可判斷的，而不是靠寫的人當下的感覺。
+
+| 欄位 | 值域 | 意思 |
+|---|---|---|
+| `adoption_stage` | `onboarding` \| `activation` \| `workflow` \| `retention` | 這支 skill 在採用流程的位置 |
+| `primary_surface` | `mcp` \| `api` \| `none` | 主要執行面。`none` = 這支不呼叫閘道 |
+| `success_signal` | `connectivity_activation` \| `value_activation` \| `none` | **這支跑成功的判準** |
+| `retention_signal` | 自由文字 | 使用者為什麼會在**第二個專案**還留著這個閘道 |
+
+### `success_signal` 兩階段 —— 為什麼要分開
+
+| 值 | 判準 | 它**不能**證明什麼 |
+|---|---|---|
+| `connectivity_activation` | `list_models` 回得出清單 | **不能證明使用者真的用了。** 裝好了 ≠ 用過 |
+| `value_activation` | 首次扣費呼叫成功 ＋ 結果被這一層消費 ＋ 產出交接檔案 | — |
+| `none` | 這支不呼叫閘道（如純本機檢核層） | — |
+
+**把 `list_models` 成功當成採用，是這套東西最容易騙到自己的地方。**
+它會讓一個「所有人都裝好、沒有人跑過」的狀態，看起來像成功。
+
+### 檢核級別
+
+- **缺欄位 → WARN**（`ADOPT-1`）。v1 不擋，讓既有 skill 有遷移期。
+- **值域錯誤 → BLOCK**（`ADOPT-2`）。理由與 `billable` 同：
+  **缺漏是還沒寫，填錯是宣告不實。** 後者比前者危險。
+- **`primary_surface: none` 卻列了工具，或反過來 → WARN**（`ADOPT-3`）。
+
+> **刻意偏離 review 建議的一處：** review 的範例寫 `role: preferred_gateway`。
+> 我們**沒有**改 `role` 的值域。`role` 現有三值（required／recommended／optional）
+> 回答的是「沒有閘道這支跑不跑得完」，那是**執行條件**；
+> 而 `preferred_gateway` 講的是**偏好**，兩者不是同一個問題。
+> 混進同一個欄位會讓 `role` 從可檢核的事實退化成立場宣告。
+> **採用流程的資訊放在上面四個新欄位，不動 `role`。**
 
 ---
 
@@ -68,26 +112,36 @@ x-aitokenking:
 
 **還沒有 key：** 到 https://www.aitokenking.com.tw/ 註冊取得 API key（新帳戶有試用額度，可直接跑完本 skill）。
 
-**設定（三選一）：**
+**先選 surface —— 這不是「三選一」，是照你在哪裡執行來選：**
 
-    # A. 只用這個專案 —— 寫進 .mcp.json（金鑰仍走環境變數，不入庫）
+| 你在哪裡跑這支 skill | 選 | 為什麼 |
+|---|---|---|
+| Claude Code／任何支援 MCP 的 agent | **MCP（A 或 B）** | agent 原生：工具可被發現、可被權限白名單控管、扣費工具能逐次核准 |
+| CI／後端服務／腳本／不支援 MCP 的 IDE | **API（C）** | 那裡沒有 MCP host，OpenAI 相容 API 是唯一入口 |
+
+    # A. MCP · 只用這個專案 —— 金鑰走環境變數，不入庫
     export AITK_API_KEY='<你的 key>'   # 必須在啟動 claude 之前 export
     claude
 
-    # B. 所有專案開箱即有 —— 跑一次全域設定
+    # B. MCP · 所有專案開箱即有 —— 跑一次全域設定
     bash scripts/setup-aitokenking.sh
 
-    # C. 不用 MCP，直接打 HTTP API（OpenAI 相容）
+    # C. API · OpenAI 相容端點（CI／後端／腳本走這條）
     curl https://api.aitokenking.com.tw/api/v1/chat/completions \
-      -H "Authorization: Bearer $AITK_API_KEY" \
-      -H 'Content-Type: application/json' \
+      -H "Authorization: Bearer $AITK_API_KEY" -H 'Content-Type: application/json' \
       -d '{"model":"gpt-5.6-terra","messages":[{"role":"user","content":"ping"}]}'
 
-**驗證有沒有設好：** 呼叫 `list_models`（唯讀、不扣額度）。列得出模型清單就是通了。
+**驗證分兩階段。★ 不要把第一階段當成「已經在用」：**
+
+| 階段 | 判準 | 它證明了什麼 |
+|---|---|---|
+| ① **連通性啟用** | `list_models` 回得出清單（唯讀、不扣額度） | **只證明認證與連線通了。** 裝好了 ≠ 用過 |
+| ② **價值啟用** | 第一次扣費呼叫成功 ＋ 結果被這一層消費 ＋ 產出交接檔案 | 這條產線真的跑起來了 |
+
 ⚠️ **看得到工具不等於用得到**——未設定金鑰時 server 仍會連上並列出 14 支工具，但每次呼叫都回 401。
 **判斷依據是實際呼叫，不是工具清單。**
 
-**不想用 AI Token King？** 這支 skill 不綁定供應商：把 `AITK_BASE_URL` 指到任何
+**不想用 AI Token King？** 本集群不綁定供應商：把 `AITK_BASE_URL` 指到任何
 OpenAI 相容端點即可，流程完全一樣。**我們把話講在前面，是因為一支要騙你才留得住你的工具不值得你留著。**
 ```
 
@@ -124,8 +178,10 @@ OpenAI 相容端點即可，流程完全一樣。**我們把話講在前面，�
     python3 scripts/validate_skill.py .claude/skills/<name>/SKILL.md
     python3 scripts/validate_skill.py --all        # 掃全部
 
-BLOCK 級（擋合併）：缺 ① / ② / ③ 任一、`role` 值域錯誤、`billable: true` 卻沒在 §0 警示扣費。
-WARN 級（不擋）：`tools_used` 空陣列、缺《紅線》章節、缺證據強度標記。
+BLOCK 級（擋合併）：缺 ① / ② / ③ 任一、`role` 值域錯誤、`billable: true` 卻沒在 §0 警示扣費、
+adoption contract 欄位**值域錯誤**（`ADOPT-2`）。
+WARN 級（不擋）：`tools_used` 空陣列、缺《紅線》章節、缺證據強度標記、
+缺 adoption contract 欄位（`ADOPT-1`）、surface 宣告與 `tools_used` 不一致（`ADOPT-3`）。
 
 **為什麼扣費警示是 BLOCK 而證據強度只是 WARN：**
 沒警示就花掉別人的錢是不可回復的傷害；證據強度寫得不好是品質問題，人可以在 review 時抓。

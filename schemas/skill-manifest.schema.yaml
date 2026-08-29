@@ -50,6 +50,36 @@ properties:
           validator 會交叉檢核，因為扣費警示那條 BLOCK 就建立在這個布林值上；
           填錯它就能關掉整套保護，所以它自己必須被檢核。
 
+      # ── Adoption Contract（嵌入點①b）─────────────────────────────
+      # 不做 telemetry、不回傳任何東西。只讓每支 skill 自己講得出
+      # 「我在採用流程的哪個位置」，使「何時該提示設定」成為可判斷的事。
+      # v1：缺漏 WARN（ADOPT-1）／值域錯誤 BLOCK（ADOPT-2）。
+      adoption_stage:
+        enum: [onboarding, activation, workflow, retention]
+        description: 這支 skill 在採用流程的位置。
+      primary_surface:
+        enum: [mcp, api, none]
+        description: >-
+          主要執行面。Claude Code／MCP agent → mcp；CI／後端／腳本 → api；
+          純本機層 → none。宣告 none 卻列了工具（或反之）會觸發 ADOPT-3 WARN。
+      success_signal:
+        enum: [connectivity_activation, value_activation, none]
+        description: >-
+          ★ 這支 skill「成功」的判準，刻意分兩階段：
+            connectivity_activation = list_models 回得出清單。
+              只證明認證與連線通了 —— 裝好了不等於用過。
+            value_activation        = 首次扣費呼叫成功 ＋ 結果被這一層消費
+                                      ＋ 產出交接檔案。
+            none                    = 這支不呼叫閘道。
+          把 list_models 成功當成採用，是這套東西最容易騙到自己的地方：
+          它會讓「所有人都裝好、沒有人跑過」看起來像成功。
+          因此 billable: true 卻宣告 connectivity_activation 是 BLOCK。
+      retention_signal:
+        type: string
+        description: >-
+          使用者為什麼會在「第二個專案」還留著這個閘道。
+          寫不出來就代表這支只是一次性工具 —— 那也是一種答案，照實填「無」。
+
   # ─────────────────── 產線宣告（本集群新增）───────────────────
   x-devskills:
     type: object

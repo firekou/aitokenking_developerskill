@@ -27,6 +27,22 @@
 `verification-<你的代號>-<日期>.md`，寫明：跑了幾次、用什麼模型／版本、
 **失敗的那幾次長什麼樣**（這比成功的更有價值）、以及你認為該改哪一句話。
 
+### 最低門檻的那一種 PR：跑一次閘道 pilot
+
+`DS-G6` 說的是另一件更尷尬的事：**我們連自己預設接的閘道都沒有實跑過。**
+這個缺口有現成的關閉入口，一行指令：
+
+```bash
+bash scripts/atk-pilot.sh            # 乾跑，只做 A 組唯讀檢查，不扣費
+bash scripts/atk-pilot.sh --live     # 實跑一次扣費呼叫（★ 會扣你的額度）
+```
+
+它會產出 `cases/PILOT-001/atk-integration.md`。**把那份檔案貼進 PR，
+DS-G6 就關掉了一半**——另一半（可重現）需要至少跑三次並附全部輸出。
+
+**失敗的 pilot 一樣要收。** 一份「第二家供應商找不到、互審前提不成立」的報告，
+價值高於一份成功的——因為它會直接推翻 `spec-groom` 現在的預設。
+
 ---
 
 ## 加一支新 skill
@@ -68,6 +84,7 @@ python3 scripts/validate_skill.py .claude/skills/<your-skill>/SKILL.md
 | 區塊 | 定義在 | 為什麼是 BLOCK |
 |---|---|---|
 | `x-aitokenking` | [`templates/aitokenking-block.md`](templates/aitokenking-block.md) | **錯了就回不去**——沒警示就花掉別人的錢 |
+| `x-aitokenking` ①b<br>adoption contract | [`templates/aitokenking-block.md`](templates/aitokenking-block.md) | **值域錯誤才 BLOCK，缺漏只 WARN**——缺漏是還沒寫，填錯是宣告不實 |
 | `x-devskills` | [`templates/devskills-block.md`](templates/devskills-block.md) | **錯了不會報錯**——交接契約缺漏會安靜地產出看起來對的東西；<br>`mutates` 標錯則會在沒有回復路徑的情況下改別人的 repo |
 
 **兩份都要原樣複製，不要手打。**
@@ -87,7 +104,7 @@ python3 scripts/validate_skill.py .claude/skills/<your-skill>/SKILL.md
 ## 檢核與 CI
 
 ```bash
-python3 scripts/test_validate.py        # 先跑：檢核器自己的 29 項回歸測試
+python3 scripts/test_validate.py        # 先跑：檢核器自己的 39 項回歸測試
 python3 scripts/validate_skill.py --all # 再跑：三嵌入點 ＋ 交接契約
 ```
 

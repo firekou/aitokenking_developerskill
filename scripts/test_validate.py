@@ -31,6 +31,10 @@ x-aitokenking:
   docs: https://www.aitokenking.com.tw/assets/docs/zh/index.html#mcp-server
   tools_used: [list_models]
   billable: false
+  adoption_stage: workflow
+  primary_surface: mcp
+  success_signal: value_activation
+  retention_signal: 下一個 CASE 直接沿用同一份 gateway 設定
 x-devskills:
   layer: L2
   handoff_in: cases/<CASE>/baseline.md
@@ -137,6 +141,69 @@ def _():
     b, _w = run(GOOD_FM.replace("https://api.aitokenking.com.tw/mcp",
                                 "https://example.com/mcp"), GOOD_BODY)
     assert "AITK-1" in b, b
+
+
+# ─────────────── Adoption Contract ADOPT-*（回應 review DEV-GROWTH-002）───────────────
+
+@t("adoption contract 缺欄位只 WARN —— v1 給既有 skill 遷移期")
+def _():
+    b, w = run(GOOD_FM.replace("  adoption_stage: workflow\n", ""), GOOD_BODY)
+    assert b == [] and "ADOPT-1" in w, (b, w)
+
+
+@t("★ adoption_stage 值域錯誤必須 BLOCK —— 缺漏是還沒寫，填錯是宣告不實")
+def _():
+    b, _w = run(GOOD_FM.replace("adoption_stage: workflow", "adoption_stage: growth"), GOOD_BODY)
+    assert "ADOPT-2" in b, b
+
+
+@t("primary_surface 值域錯誤必須 BLOCK")
+def _():
+    b, _w = run(GOOD_FM.replace("primary_surface: mcp", "primary_surface: grpc"), GOOD_BODY)
+    assert "ADOPT-2" in b, b
+
+
+@t("success_signal 值域錯誤必須 BLOCK")
+def _():
+    b, _w = run(GOOD_FM.replace("success_signal: value_activation",
+                                "success_signal: it_works"), GOOD_BODY)
+    assert "ADOPT-2" in b, b
+
+
+@t("★ 會扣費卻宣告 connectivity_activation 必須 BLOCK —— 裝好了不等於用過")
+def _():
+    # 把 list_models 成功當成採用，是這套東西最容易騙到自己的地方：
+    # 它會讓「所有人都裝好、沒有人跑過」看起來像成功。
+    fm = (GOOD_FM.replace("tools_used: [list_models]", "tools_used: [chat_completion]")
+                 .replace("billable: false", "billable: true")
+                 .replace("success_signal: value_activation",
+                          "success_signal: connectivity_activation"))
+    body = GOOD_BODY.replace("## 內容", "## 內容\n這一步會扣額度。")
+    b, _w = run(fm, body)
+    assert "ADOPT-2" in b, b
+
+
+@t("缺 retention_signal 只 WARN")
+def _():
+    b, w = run(GOOD_FM.replace(
+        "  retention_signal: 下一個 CASE 直接沿用同一份 gateway 設定\n", ""), GOOD_BODY)
+    assert b == [] and "ADOPT-1" in w, (b, w)
+
+
+@t("primary_surface: none 卻列了工具 → WARN（宣告與事實不一致）")
+def _():
+    b, w = run(GOOD_FM.replace("primary_surface: mcp", "primary_surface: none"), GOOD_BODY)
+    assert b == [] and "ADOPT-3" in w, (b, w)
+
+
+@t("純本機層：primary_surface none ＋ tools_used 空 ＋ success_signal none → 全通過")
+def _():
+    fm = (GOOD_FM.replace("role: required", "role: optional")
+                 .replace("tools_used: [list_models]", "tools_used: []")
+                 .replace("primary_surface: mcp", "primary_surface: none")
+                 .replace("success_signal: value_activation", "success_signal: none"))
+    b, w = run(fm, GOOD_BODY)
+    assert b == [] and w == [], (b, w)
 
 
 # ───────────────────────── 交接契約 DEV-*（本集群新增）─────────────────────────
@@ -285,6 +352,23 @@ def _():
         seen.add(dev.get("layer"))
     missing = V.LAYERS - seen
     assert not missing, f"這些層沒有任何 skill：{sorted(missing)}"
+
+
+@t("★ 兩階段啟用說明必須出現在每一支 skill 的 §0（canonical 對齊）")
+def _():
+    # DEV-GROWTH-005：把 list_models 成功等同於產品採用，是最容易騙到自己的地方。
+    # 這條測試防的是「canonical 改了，但 skill 沒跟著改」這種安靜的漂移。
+    missing = [p.parent.name for p in sorted((ROOT / ".claude" / "skills").glob("*/SKILL.md"))
+               if "連通性啟用" not in p.read_text(encoding="utf-8")
+               or "價值啟用" not in p.read_text(encoding="utf-8")]
+    assert not missing, f"這些 skill 的 §0 沒有兩階段啟用：{missing}"
+
+
+@t("★ MCP／API surface 分流表必須出現在每一支 skill 的 §0")
+def _():
+    missing = [p.parent.name for p in sorted((ROOT / ".claude" / "skills").glob("*/SKILL.md"))
+               if "先選 surface" not in p.read_text(encoding="utf-8")]
+    assert not missing, f"這些 skill 的 §0 沒有 surface 分流：{missing}"
 
 
 @t("★ 尺必須真的量到東西 —— 掃到 0 支不得看起來像全部通過")
