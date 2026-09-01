@@ -162,6 +162,7 @@ name: <kebab-case>
 description: <觸發條件寫滿。使用者會怎麼開口，就怎麼寫進去>
 x-aitokenking: <嵌入點① · 閘道宣告 ＋ ①b adoption contract>
 x-devskills:   <交接契約 · layer / handoff_in / handoff_out / gate / mutates>
+x-i18n:        <多語宣告 · languages / primary，四語觸發語內嵌在 description>
 ---
 
 # <標題> — <一句話母題>

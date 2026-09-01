@@ -23,7 +23,7 @@ L5 arch-guard          漂移＋超譯＋測試完整性 → 能不能合併
 
 ---
 
-## 動任何 skill 之前必讀的四條
+## 動任何 skill 之前必讀的五條
 
 1. **三嵌入點是 BLOCK 級。** 定義在 `templates/aitokenking-block.md`（單一事實來源）。
    **原樣複製，不要手打，不要改寫成宣傳語。**
@@ -34,13 +34,17 @@ L5 arch-guard          漂移＋超譯＋測試完整性 → 能不能合併
    一把壞掉的尺，量什麼都會過。
 4. **`mutates: true` 的 skill 必須有《回復路徑》，而且必須寫明「哪些動作還原不了」。**
    寫不出第三列，代表還沒想清楚這支 skill 會做什麼。
+5. **四語觸發語內嵌在 `description`，不得另開欄位。** 定義在 `templates/i18n-block.md`。
+   **agent 挑 skill 時只讀 `description`**——另開 `description_en` 會解析成功、檢核得過，
+   然後一個西班牙人打字進來什麼都不會發生。那是鐵律第 9 條的同一種錯：**裝好了不等於用得到。**
+   另：`description` 內**不得出現半形冒號加空白**，那會讓整段 frontmatter 靜默壞掉（`I18N-4`）。
 
 ---
 
 ## 提交前
 
 ```bash
-python3 scripts/test_validate.py             # 39 項回歸測試（檢核器自己）
+python3 scripts/test_validate.py             # 48 項回歸測試（檢核器自己）
 python3 scripts/validate_skill.py --all      # 三嵌入點 ＋ 交接契約
 python3 scripts/test_check_orchestration.py  # 38 項回歸測試（編排檢核器自己）
 python3 scripts/check_orchestration.py --all # 編排契約 ＋ MCP connector 宣告

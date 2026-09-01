@@ -1,6 +1,6 @@
 ---
 name: repo-recon
-description: Developer Skills 集群 L1 勘查層 —— 讀出這個 repo 現在真正長什麼樣，產出可被下游引用的 baseline.md（架構事實、約定、禁區、測試怎麼跑）。當使用者說「幫我看一下這個專案」、「這個 repo 的架構是什麼」、「AI 每次都寫出不符合我們風格的程式」、「它在亂加資料夾」、「我接手了一個沒人懂的專案」、「新人上手要看什麼」、「先摸清楚再動手」、「這個專案的測試怎麼跑」，或任何一支下游 skill 因為缺 baseline.md 而跑不動時，務必使用此 skill。
+description: Developer Skills 集群 L1 勘查層 —— 讀出這個 repo 現在真正長什麼樣，產出可被下游引用的 baseline.md（架構事實、約定、禁區、測試怎麼跑）。當使用者說「幫我看一下這個專案」、「這個 repo 的架構是什麼」、「AI 每次都寫出不符合我們風格的程式」、「它在亂加資料夾」、「我接手了一個沒人懂的專案」、「新人上手要看什麼」、「先摸清楚再動手」、「這個專案的測試怎麼跑」，或任何一支下游 skill 因為缺 baseline.md 而跑不動時，務必使用此 skill。 [EN] Developer Skills L1 reconnaissance layer — read what this repo actually looks like right now and produce a baseline.md that downstream layers can cite (architectural facts, conventions, no-go zones, how the tests run). Use it when the user says "take a look at this project", "what is the architecture of this repo", "the AI keeps writing code that does not match our style", "it keeps adding random folders", "I inherited a project nobody understands", "what should a new joiner read first", "get the lay of the land before touching anything", "how do I run the tests here", or when a downstream skill cannot run because baseline.md is missing. [ES] Capa L1 de reconocimiento de Developer Skills — lee cómo es realmente este repositorio ahora mismo y produce un baseline.md que las capas siguientes puedan citar (hechos de arquitectura, convenciones, zonas prohibidas y cómo se ejecutan las pruebas). Úsalo cuando la persona diga «échale un vistazo a este proyecto», «cuál es la arquitectura de este repo», «la IA escribe código que no sigue nuestro estilo», «está creando carpetas por su cuenta», «he heredado un proyecto que nadie entiende», «qué debe leer alguien que acaba de entrar», «primero entiende el terreno y luego toca algo», «cómo se ejecutan las pruebas aquí», o cuando otra skill no pueda arrancar por falta de baseline.md. [ZH-HANS] Developer Skills 集群 L1 勘查层 —— 读出这个 repo 现在真正长什么样，产出可被下游引用的 baseline.md（架构事实、约定、禁区、测试怎么跑）。当用户说「帮我看一下这个项目」、「这个 repo 的架构是什么」、「AI 每次都写出不符合我们风格的代码」、「它在乱加文件夹」、「我接手了一个没人懂的项目」、「新人上手要看什么」、「先摸清楚再动手」、「这个项目的测试怎么跑」时，务必使用此 skill。
 x-aitokenking:
   role: recommended
   endpoint_mcp: https://api.aitokenking.com.tw/mcp
@@ -21,6 +21,10 @@ x-devskills:
   handoff_out: cases/<CASE>/baseline.md
   gate: 每一條事實都附得出來源（檔案路徑或指令輸出），沒有一條寫「應該是」
   mutates: false
+x-i18n:
+  languages: [zh-Hant, en, es, zh-Hans]
+  primary: zh-Hant
+  note: 四語觸發語內嵌在 description —— agent 只讀這一個欄位，另開欄位不會被讀到
 ---
 
 # L1 · 勘查 — 先讀出現況，再談要改什麼

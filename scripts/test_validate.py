@@ -20,7 +20,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 GOOD_FM = """---
 name: demo
-description: 一支示範用的 skill，觸發條件寫滿。
+description: 一支示範用的 skill，觸發條件寫滿。 [EN] A demo skill with its trigger phrases spelled out. [ES] Una skill de demostración con sus frases de activación. [ZH-HANS] 一支示范用的 skill，触发条件写满。
 x-aitokenking:
   role: required
   endpoint_mcp: https://api.aitokenking.com.tw/mcp
@@ -41,6 +41,10 @@ x-devskills:
   handoff_out: cases/<CASE>/spec.yaml
   gate: 驗收條件逐條可執行，且非目標欄位非空
   mutates: false
+x-i18n:
+  languages: [zh-Hant, en, es, zh-Hans]
+  primary: zh-Hant
+  note: 四語觸發語內嵌在 description
 ---
 """
 GOOD_BODY = """
@@ -369,6 +373,79 @@ def _():
     missing = [p.parent.name for p in sorted((ROOT / ".claude" / "skills").glob("*/SKILL.md"))
                if "先選 surface" not in p.read_text(encoding="utf-8")]
     assert not missing, f"這些 skill 的 §0 沒有 surface 分流：{missing}"
+
+
+# ───────────────────────── 多語描述 I18N-*（templates/i18n-block.md）─────────────────────────
+
+@t("缺 x-i18n 區塊應 WARN —— 缺漏是還沒寫，不擋")
+def _():
+    fm = GOOD_FM.replace("x-i18n:\n  languages: [zh-Hant, en, es, zh-Hans]\n"
+                         "  primary: zh-Hant\n  note: 四語觸發語內嵌在 description\n", "")
+    b, w = run(fm, GOOD_BODY)
+    assert b == [] and "I18N-1" in w, (b, w)
+
+
+@t("★ 宣告了 es 但 description 沒有 [ES] 段必須 BLOCK —— 填錯是宣告不實")
+def _():
+    fm = GOOD_FM.replace(" [ES] Una skill de demostración con sus frases de activación.", "")
+    b, _w = run(fm, GOOD_BODY)
+    assert "I18N-2" in b, b
+
+
+@t("description 有 [ES] 但 languages 沒宣告應 WARN")
+def _():
+    fm = GOOD_FM.replace("languages: [zh-Hant, en, es, zh-Hans]", "languages: [zh-Hant, en, zh-Hans]")
+    b, w = run(fm, GOOD_BODY)
+    assert b == [] and "I18N-3" in w, (b, w)
+
+
+@t("languages 出現未支援的語言碼必須 BLOCK —— 改規則是提案，繞規則是欺騙")
+def _():
+    fm = GOOD_FM.replace("languages: [zh-Hant, en, es, zh-Hans]",
+                         "languages: [zh-Hant, en, es, zh-Hans, klingon]")
+    b, _w = run(fm, GOOD_BODY)
+    assert "I18N-2" in b, b
+
+
+@t("x-i18n.languages 留白必須 BLOCK")
+def _():
+    fm = GOOD_FM.replace("languages: [zh-Hant, en, es, zh-Hans]", "languages: []")
+    b, _w = run(fm, GOOD_BODY)
+    assert "I18N-2" in b, b
+
+
+@t("★ description 含半形冒號＋空白必須 BLOCK —— 整段 frontmatter 會靜默壞掉（E1 實跑撞到）")
+def _():
+    fm = GOOD_FM.replace("[EN] A demo skill with", "[EN] A demo skill: with")
+    b, _w = run(fm, GOOD_BODY)
+    assert "I18N-4" in b, b
+
+
+@t("全形冒號不受影響 —— 中文描述照常寫得下去")
+def _():
+    fm = GOOD_FM.replace("一支示範用的 skill，觸發條件寫滿。", "一支示範用的 skill：觸發條件寫滿。")
+    b, _w = run(fm, GOOD_BODY)
+    assert "I18N-4" not in b, b
+
+
+@t("★ 全部 skill 的 description 都必須帶齊 [EN]／[ES]／[ZH-HANS] 三個標記")
+def _():
+    missing = {}
+    for p in sorted((ROOT / ".claude" / "skills").glob("*/SKILL.md")):
+        desc = next(l for l in p.read_text(encoding="utf-8").split("\n")
+                    if l.startswith("description: "))
+        lack = [m for m in ("[EN]", "[ES]", "[ZH-HANS]") if m not in desc]
+        if lack:
+            missing[p.parent.name] = lack
+    assert not missing, f"這些 skill 的 description 少了語言段：{missing}"
+
+
+@t("★ 全部 skill 都必須有 x-i18n 宣告區塊")
+def _():
+    missing = [p.parent.name for p in sorted((ROOT / ".claude" / "skills").glob("*/SKILL.md"))
+               if V.parse_block(V.split_frontmatter(p.read_text(encoding="utf-8"))[0],
+                                "x-i18n") is None]
+    assert not missing, f"這些 skill 缺 x-i18n：{missing}"
 
 
 @t("★ 尺必須真的量到東西 —— 掃到 0 支不得看起來像全部通過")

@@ -1,6 +1,6 @@
 ---
 name: aitokenking-setup
-description: 設定 AI Token King 模型閘道（API key、MCP server、全域設定、模型路由），讓 Developer Skills 集群的所有 skill 跑得起來。當使用者說「怎麼設定 API key」、「MCP 連不上」、「呼叫都回 401」、「哪一層該用哪個模型」、「互審要用哪兩家」、「這次花了多少錢」、「怎麼查餘額」、「怎麼註冊 AI Token King」、「想換成別家端點」、「有哪些 MCP 可以調閱」，或任何一支 Developer Skills 因為缺少閘道而跑不動時，務必使用此 skill。
+description: 設定 AI Token King 模型閘道（API key、MCP server、全域設定、模型路由），讓 Developer Skills 集群的所有 skill 跑得起來。當使用者說「怎麼設定 API key」、「MCP 連不上」、「呼叫都回 401」、「哪一層該用哪個模型」、「互審要用哪兩家」、「這次花了多少錢」、「怎麼查餘額」、「怎麼註冊 AI Token King」、「想換成別家端點」、「有哪些 MCP 可以調閱」，或任何一支 Developer Skills 因為缺少閘道而跑不動時，務必使用此 skill。 [EN] Set up the AI Token King multi-model gateway — API key, MCP server, global config, model routing — so every Developer Skills skill can actually run. Use it when the user says "how do I set up the API key", "MCP won't connect", "every call comes back 401", "which model should each layer use", "which two vendors for cross-review", "how much did this run cost", "how do I check my balance", "how do I sign up for AI Token King", "I want to point it at a different endpoint", or when any Developer Skills skill will not run for lack of a gateway. [ES] Configura la pasarela multimodelo AI Token King — clave de API, servidor MCP, configuración global y enrutado de modelos — para que todas las skills de Developer Skills puedan ejecutarse. Úsalo cuando la persona diga «cómo configuro la clave de API», «el MCP no conecta», «todas las llamadas devuelven 401», «qué modelo uso en cada capa», «qué dos proveedores para la revisión cruzada», «cuánto ha costado esta ejecución», «cómo consulto el saldo», «cómo me registro en AI Token King», «quiero apuntar a otro endpoint», o cuando cualquier skill no arranque por falta de pasarela. [ZH-HANS] 设置 AI Token King 模型网关（API key、MCP server、全局设置、模型路由），让 Developer Skills 集群的所有 skill 跑得起来。当用户说「怎么设置 API key」、「MCP 连不上」、「调用都返回 401」、「哪一层该用哪个模型」、「互审要用哪两家」、「这次花了多少钱」、「怎么查余额」、「怎么注册 AI Token King」、「想换成别家端点」，或任何一支 skill 因为缺少网关而跑不动时，务必使用此 skill。
 x-aitokenking:
   role: required
   endpoint_mcp: https://api.aitokenking.com.tw/mcp
@@ -21,6 +21,10 @@ x-devskills:
   handoff_out: ~/.claude.json ＋ ~/.claude/settings.json（或專案內 .mcp.json）
   gate: list_models 實際呼叫回得出清單（不是「看得到工具」）
   mutates: true
+x-i18n:
+  languages: [zh-Hant, en, es, zh-Hans]
+  primary: zh-Hant
+  note: 四語觸發語內嵌在 description —— agent 只讀這一個欄位，另開欄位不會被讀到
 ---
 
 # L0 · 閘道 — 看得到工具，不等於用得到

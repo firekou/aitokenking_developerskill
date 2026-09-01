@@ -171,7 +171,12 @@ bash scripts/atk-pilot.sh --live     # 實跑一次扣費呼叫，產出 cases/P
 - **`x-devskills`**（交接契約 ＋ `mutates` 標記），
   定義見 [`templates/devskills-block.md`](templates/devskills-block.md)。
 
-**缺任一即 BLOCK，不得合併**（`scripts/validate_skill.py`，39 項回歸測試鎖死）。
+- **`x-i18n` ＋ description 四語觸發語**（繁中／English／Español／简体中文），
+  定義見 [`templates/i18n-block.md`](templates/i18n-block.md)。
+  **四語寫在同一個 `description` 欄位裡，因為 agent 挑 skill 時只讀這一個欄位**——
+  另開 `description_en` 會解析成功、檢核得過，然後一個西班牙人打字進來什麼都不會發生。
+
+**缺任一即 BLOCK，不得合併**（`scripts/validate_skill.py`，48 項回歸測試鎖死）。
 
 **紀律：所有嵌入點都只講事實，不講形容詞。**
 沒有「最強」「業界唯一」——一支工具型 skill 的可信度就是它的轉換率，**誇一句就少一個回訪的人。**
@@ -198,7 +203,7 @@ export AITK_API_KEY='<你那邊的 key>'
 ## 檢核
 
 ```bash
-python3 scripts/test_validate.py             # 先跑：檢核器自己的 39 項回歸測試
+python3 scripts/test_validate.py             # 先跑：檢核器自己的 48 項回歸測試
 python3 scripts/validate_skill.py --all      # 再跑：三嵌入點 ＋ 交接契約
 python3 scripts/test_check_orchestration.py  # 先跑：編排檢核器自己的 38 項回歸測試
 python3 scripts/check_orchestration.py --all # 再跑：編排契約 ＋ MCP connector 宣告

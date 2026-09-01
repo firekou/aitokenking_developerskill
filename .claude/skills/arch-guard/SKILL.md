@@ -1,6 +1,6 @@
 ---
 name: arch-guard
-description: Developer Skills 集群 L5 治理層 —— 把完成品對回 baseline 檢核架構漂移、非目標超譯與證據強度，決定這批改動能不能合併。當使用者說「這個 PR 可以合了嗎」、「AI 改完之後架構跑掉了」、「它多做了我沒要求的東西」、「怎麼確認它沒偷改別的地方」、「validator 報 BLOCK 怎麼修」、「三嵌入點少了什麼」、「architecture drift」、「這批改動符不符合我們的規範」、「幫我做一次治理掃描」時，務必使用此 skill。
+description: Developer Skills 集群 L5 治理層 —— 把完成品對回 baseline 檢核架構漂移、非目標超譯與證據強度，決定這批改動能不能合併。當使用者說「這個 PR 可以合了嗎」、「AI 改完之後架構跑掉了」、「它多做了我沒要求的東西」、「怎麼確認它沒偷改別的地方」、「validator 報 BLOCK 怎麼修」、「三嵌入點少了什麼」、「architecture drift」、「這批改動符不符合我們的規範」、「幫我做一次治理掃描」時，務必使用此 skill。 [EN] Developer Skills L5 governance layer — check the finished work back against the baseline for architectural drift, over-interpretation of the stated non-goals, and evidence strength, then decide whether this batch may be merged. Use it when the user says "is this PR ready to merge", "the architecture drifted after the AI touched it", "it did things I never asked for", "how do I confirm it did not quietly change something else", "the validator reports BLOCK, how do I fix it", "which of the three embed points is missing", "architecture drift", "does this batch follow our conventions", or "run a governance scan for me". [ES] Capa L5 de gobernanza de Developer Skills — contrasta el trabajo terminado con la línea base para detectar deriva arquitectónica, sobreinterpretación de los no-objetivos y solidez de la evidencia, y decide si este lote puede fusionarse. Úsalo cuando la persona diga «se puede fusionar ya este PR», «la arquitectura se ha desviado después de tocarla la IA», «ha hecho cosas que yo no pedí», «cómo confirmo que no ha cambiado nada más por su cuenta», «el validador da BLOCK, cómo lo arreglo», «qué falta de los tres puntos de inserción», «deriva arquitectónica», «este lote cumple nuestras convenciones», o «hazme un escaneo de gobernanza». [ZH-HANS] Developer Skills 集群 L5 治理层 —— 把完成品对回 baseline 检核架构漂移、非目标超译与证据强度，决定这批改动能不能合并。当用户说「这个 PR 可以合了吗」、「AI 改完之后架构跑掉了」、「它多做了我没要求的东西」、「怎么确认它没偷改别的地方」、「validator 报 BLOCK 怎么修」、「三嵌入点少了什么」、「architecture drift」、「这批改动符不符合我们的规范」、「帮我做一次治理扫描」时，务必使用此 skill。
 x-aitokenking:
   role: optional
   endpoint_mcp: https://api.aitokenking.com.tw/mcp
@@ -21,6 +21,10 @@ x-devskills:
   handoff_out: cases/<CASE>/guard-report.md
   gate: BLOCK 清空且非目標超譯清單為空 —— 才准合併
   mutates: false
+x-i18n:
+  languages: [zh-Hant, en, es, zh-Hans]
+  primary: zh-Hant
+  note: 四語觸發語內嵌在 description —— agent 只讀這一個欄位，另開欄位不會被讀到
 ---
 
 # L5 · 治理 — 能擋 PR 的檢核，要留給「錯了就回不去」與「錯了不會報錯」

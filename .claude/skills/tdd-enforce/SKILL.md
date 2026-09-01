@@ -1,6 +1,6 @@
 ---
 name: tdd-enforce
-description: Developer Skills 集群 L4 執行層 —— 一次推進一個任務節點，強制紅綠重構：先寫會失敗的測試、看它真的失敗、才准寫實作。當使用者說「幫我實作這個任務」、「開始寫」、「TDD」、「測試先行」、「紅綠重構」、「AI 寫的測試都馬上通過很可疑」、「它說測試過了但我沒看到輸出」、「怎麼確定它真的有跑測試」、「它為了讓測試綠掉把測試刪了」、「一次改太多」時，務必使用此 skill。
+description: Developer Skills 集群 L4 執行層 —— 一次推進一個任務節點，強制紅綠重構：先寫會失敗的測試、看它真的失敗、才准寫實作。當使用者說「幫我實作這個任務」、「開始寫」、「TDD」、「測試先行」、「紅綠重構」、「AI 寫的測試都馬上通過很可疑」、「它說測試過了但我沒看到輸出」、「怎麼確定它真的有跑測試」、「它為了讓測試綠掉把測試刪了」、「一次改太多」時，務必使用此 skill。 [EN] Developer Skills L4 execution layer — advance one task node at a time under enforced red-green-refactor. Write the failing test, watch it actually fail, and only then write the implementation. Use it when the user says "implement this task", "start writing the code", "TDD", "test first", "red green refactor", "the tests the AI writes pass immediately and that looks wrong", "it says the tests passed but I never saw the output", "how do I know it really ran the tests", "it deleted the test to make the suite green", or "it changes too much in one go". [ES] Capa L4 de ejecución de Developer Skills — avanza un nodo de tarea cada vez con rojo-verde-refactor obligatorio. Primero la prueba que falla, verla fallar de verdad y solo entonces escribir la implementación. Úsalo cuando la persona diga «implementa esta tarea», «empieza a escribir el código», «TDD», «primero la prueba», «rojo verde refactor», «las pruebas que escribe la IA pasan de inmediato y eso me da mala espina», «dice que las pruebas pasan pero yo no he visto la salida», «cómo sé que ha ejecutado las pruebas de verdad», «ha borrado la prueba para poner la suite en verde», o «cambia demasiadas cosas a la vez». [ZH-HANS] Developer Skills 集群 L4 执行层 —— 一次推进一个任务节点，强制红绿重构：先写会失败的测试、看它真的失败、才准写实现。当用户说「帮我实现这个任务」、「开始写」、「TDD」、「测试先行」、「红绿重构」、「AI 写的测试都马上通过很可疑」、「它说测试过了但我没看到输出」、「怎么确定它真的跑过测试」、「它为了让测试变绿把测试删了」、「一次改太多」时，务必使用此 skill。
 x-aitokenking:
   role: recommended
   endpoint_mcp: https://api.aitokenking.com.tw/mcp
@@ -21,6 +21,10 @@ x-devskills:
   handoff_out: cases/<CASE>/run-log.md（＋ 使用者 repo 內的實際 commit）
   gate: 每個節點都留下「紅→綠」兩段真實測試輸出，且無測試被刪除或跳過
   mutates: true
+x-i18n:
+  languages: [zh-Hant, en, es, zh-Hans]
+  primary: zh-Hant
+  note: 四語觸發語內嵌在 description —— agent 只讀這一個欄位，另開欄位不會被讀到
 ---
 
 # L4 · 執行 — 綠燈要來自「跑過」，不是來自「沒跑」
