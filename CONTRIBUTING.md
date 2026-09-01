@@ -45,6 +45,21 @@ DS-G6 就關掉了一半**——另一半（可重現）需要至少跑三次並
 
 ---
 
+### 另一種低門檻 PR：貢獻一份 MCP connector 宣告
+
+`tools/` 收的是「哪一個 MCP、可以被哪一層調閱、會不會動到你的東西」的機器可讀宣告。
+
+```bash
+cp tools/aitokenking.connector.yaml tools/<你的>.connector.yaml
+python3 scripts/check_orchestration.py tools/<你的>.connector.yaml
+```
+
+規則與退件理由見 [`tools/README.md`](tools/README.md)。**一句話版本：**
+`evidence: E1` 只能給你**真的接起來呼叫過**的 connector，讀文件寫出來的是 `E2`；
+`writes` 判不出來就填 `true`。
+
+---
+
 ## 加一支新 skill
 
 ```bash
@@ -77,17 +92,23 @@ python3 scripts/validate_skill.py .claude/skills/<your-skill>/SKILL.md
    「`pilot-shell` 宣稱強制 TDD」可以；「本集群比它嚴格」不可以。
    **這是本 repo 最嚴重的一種錯。**
 
+6. **只寫了繁中的 `description`。** 四語觸發語（繁中 ＋ `[EN]` ＋ `[ES]` ＋ `[ZH-HANS]`）
+   要寫在**同一個** `description` 欄位裡，見 [`templates/i18n-block.md`](templates/i18n-block.md)。
+   **簡體版不是繁轉簡**——用詞要換（「程式」→「程序」、「專案」→「项目」），
+   否則簡中使用者的原話一樣對不上。
+
 ---
 
-## 兩個 BLOCK 級宣告區塊（不可協商）
+## 三個宣告區塊（不可協商）
 
 | 區塊 | 定義在 | 為什麼是 BLOCK |
 |---|---|---|
 | `x-aitokenking` | [`templates/aitokenking-block.md`](templates/aitokenking-block.md) | **錯了就回不去**——沒警示就花掉別人的錢 |
 | `x-aitokenking` ①b<br>adoption contract | [`templates/aitokenking-block.md`](templates/aitokenking-block.md) | **值域錯誤才 BLOCK，缺漏只 WARN**——缺漏是還沒寫，填錯是宣告不實 |
 | `x-devskills` | [`templates/devskills-block.md`](templates/devskills-block.md) | **錯了不會報錯**——交接契約缺漏會安靜地產出看起來對的東西；<br>`mutates` 標錯則會在沒有回復路徑的情況下改別人的 repo |
+| `x-i18n` ＋ description 四語 | [`templates/i18n-block.md`](templates/i18n-block.md) | **缺語言只是 WARN；宣告了卻沒寫是 BLOCK**——「已支援西班牙文」會出現在索引裡而那是假的。<br>另：description 含半形冒號加空白會讓整段 frontmatter 靜默壞掉（`I18N-4`，BLOCK） |
 
-**兩份都要原樣複製，不要手打。**
+**三份都要原樣複製，不要手打。**
 
 **為什麼三嵌入點是不可協商的：** 這個 repo 是免費開源的，而它的維護成本由
 [AI Token King](https://www.aitokenking.com.tw/) 承擔。
@@ -104,12 +125,14 @@ python3 scripts/validate_skill.py .claude/skills/<your-skill>/SKILL.md
 ## 檢核與 CI
 
 ```bash
-python3 scripts/test_validate.py        # 先跑：檢核器自己的 39 項回歸測試
-python3 scripts/validate_skill.py --all # 再跑：三嵌入點 ＋ 交接契約
+python3 scripts/test_validate.py             # 先跑：檢核器自己的 48 項回歸測試
+python3 scripts/validate_skill.py --all      # 再跑：三嵌入點 ＋ 交接契約
+python3 scripts/test_check_orchestration.py  # 先跑：編排檢核器自己的 38 項回歸測試
+python3 scripts/check_orchestration.py --all # 再跑：編排契約 ＋ MCP connector 宣告
 ```
 
 **順序不可交換。一把壞掉的尺，量什麼都會過。**
-改動 `validate_skill.py` 而沒跑回歸測試的 PR，一律退回。
+改動 `validate_skill.py` 或 `check_orchestration.py` 而沒跑對應回歸測試的 PR，一律退回。
 
 **不得為了通過檢核而竄改宣告欄位**（尤其 `billable` 與 `mutates`）。檢核器抓得到，
 而且這麼做騙的是下一個跑這支 skill 的人。

@@ -1,0 +1,74 @@
+# 編排契約範例（templates/orchestration.example.yaml）
+#
+# ★ 這是一份「形狀正確」的契約，不是一份「跑過」的契約。
+#   provider／model 全部是佔位字串 —— 真的要用，先跑 list_models 換成當下叫得動的那些。
+#   check_orchestration.py 會對佔位字串發 WARN，那是刻意的：
+#   讓「還沒填實」跟「已經填實」在檢核輸出裡長得不一樣。
+#
+# 用法：
+#   cp templates/orchestration.example.yaml cases/CASE-001/orchestration.yaml
+#   python3 scripts/check_orchestration.py cases/CASE-001/orchestration.yaml
+
+case_id: CASE-000
+spec: null
+route: B
+dry_run: true
+
+orchestrator:
+  provider: "<provider-a>"
+  model: "<model-id>"
+  selection_reason: "context_window 最大 —— 這條鏈要一次持有全部交棒產物"
+
+workers:
+  - role: code_generation
+    provider: "<provider-a>"
+    model: "<model-id>"
+    selection_reason: "單價最低且支援 function calling；這一步呼叫次數最多"
+    tool: chat_completion
+  - role: peer_review
+    provider: "<provider-b>"          # ★ 與上面不同家。同家的兩支盲點是同一組
+    model: "<model-id>"
+    selection_reason: "跨供應商互審；同家共享訓練偏好會一起漏掉同一件事"
+    tool: create_message
+
+steps:
+  - id: S-01
+    title: "產出草稿"
+    worker: code_generation
+    input: "cases/CASE-000/spec.yaml"
+    output: "cases/CASE-000/draft.md"
+    done_when: "draft.md 存在且每條驗收條件都被逐條回應"
+  - id: S-02
+    title: "換一家重審"
+    worker: peer_review
+    input: "cases/CASE-000/draft.md"
+    output: "cases/CASE-000/orchestration.yaml#review.disagreements"
+    done_when: "不一致處逐條落進 disagreements，且未被主模型裁決掉"
+
+triggers:
+  - when: "parse_failed == true"
+    then: "retry_with: peer_review"
+  - when: "confidence < 0.8 AND diff_items > 3"   # ★ 信心值不得單獨當閘門
+    then: "escalate_to_human"
+
+limits:
+  max_rounds: 2
+  budget_calls: 6
+  stop_on: [no_progress, same_disagreement_twice, any_4xx]
+
+review:
+  status: NOT_REVIEWED        # 跑之前就是 NOT_REVIEWED。跑完再改，不要先寫好
+  disagreements: []
+
+fanout: {}
+
+chain_log: cases/CASE-000/chain-log.md
+cost:
+  measurement_state: not_applicable    # 這份範例一次 B 組都沒呼叫
+  value: 0                             # ★ not_applicable 是全集群唯二可以誠實寫 0 的地方
+  method: "get_balance 呼叫前後相減；明細走 list_usage"
+
+terminated_by: completed
+evidence: E5                # ★ 沒跑過的契約是假設。貼得出 chain_log 才升 E1
+open_questions:
+  - "provider-b 這個帳戶當下叫不叫得到？叫不到的話 review.status 要標 SINGLE_VENDOR"

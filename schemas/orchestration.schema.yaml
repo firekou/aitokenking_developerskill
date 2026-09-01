@@ -1,0 +1,160 @@
+# Orchestration Schema（L0 編排層輸出契約 · cases/<CASE>/orchestration.yaml）
+# 版本 v1.0 · 2026-09-01
+#
+# 核心主張：一條多模型鏈要能單獨回答四件事 ——
+#   誰做了哪一步、為什麼是他、什麼時候停、花了多少。
+# 四者缺一，這條鏈就還沒被編排完，只是被跑過了。
+#
+# ★ 這份 schema 描述的是「假設」，不是「事實」。
+#   契約寫完的當下 evidence 是 E5；貼得出 chain_log 的實際輸出才升 E1。
+#   檢核器：python3 scripts/check_orchestration.py --all
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: orchestration
+type: object
+required: [case_id, route, orchestrator, workers, steps, limits, cost, evidence]
+properties:
+  case_id: { type: string, pattern: "^[A-Z]+-[0-9]{3}$" }
+  spec:
+    type: [string, "null"]
+    description: 指向 L2 產出的 spec.yaml。這一層不強制上游 —— 編排可以先於規格存在。
+  route:
+    enum: [A, B, C]
+    description: >-
+      A 線性交棒（工序固定）／B 互審（同一輸入換一家挑錯）／C 扇出匯總（子題互不相依）。
+      ★ 判不出來就 A。B 成本至少翻倍，C 的難處全部在匯總那一步。
+  dry_run:
+    type: boolean
+    description: >-
+      true = 只做 A 組唯讀檢查與步驟展開，不呼叫任何 B 組工具。
+      ★ 第一次寫完契約應該先乾跑 —— 確認每個 worker 綁得到的模型真的在 list_models 回應裡。
+
+  orchestrator:
+    type: object
+    required: [provider, model, selection_reason]
+    description: 持有整條 thread 狀態與最終裁決權的那一個。
+    properties:
+      provider: { type: string }
+      model:    { type: string, description: ★ 必須來自本次 list_models 的實際回應，不是憑印象寫的名稱 }
+      selection_reason:
+        type: string
+        description: >-
+          ★ 不得寫「比較強」。要寫命中了哪一條判準（context_window 最大／支援 JSON mode／單價最低）。
+          印象會過期，判準不會。
+
+  workers:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [role, provider, model, selection_reason, tool]
+      properties:
+        role:
+          type: string
+          description: >-
+            這個 worker 負責哪一類步驟（如 code_generation／logic_verification／
+            documentation／peer_review）。★ role 名稱自訂，但 peer_review 有特殊檢核：
+            它的 provider 必須與 orchestrator 及其他 worker 不同。
+        provider: { type: string }
+        model:    { type: string }
+        selection_reason: { type: string }
+        tool:
+          enum: [chat_completion, create_message, create_response]
+          description: ★ 全部是 B 組·扣額度工具。不得加進 permissions.allow。
+
+  steps:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      required: [id, title, worker, input, output, done_when]
+      properties:
+        id:     { type: string, pattern: "^S-[0-9]{2}$" }
+        title:  { type: string, description: 動詞開頭 }
+        worker: { type: string, description: 對應 workers[].role }
+        input:
+          type: string
+          description: >-
+            ★ 檔案路徑或結構化欄位，不是「上一輪的對話」。
+            把整段對話交棒給下一支模型，成本會隨步數線性長，
+            而且下一步會被上一步的推理過程帶著走 —— 你要的是它重新判斷，不是它附和。
+        output:    { type: string }
+        done_when: { type: string, description: 這一步做完的判準，要唸得出怎麼驗 }
+
+  triggers:
+    type: array
+    description: >-
+      什麼情況從「繼續往下」變成「回頭再審」。
+      ★ 至少一個條件必須是可檢核訊號（測試紅綠／parse 失敗／差異項數／4xx）。
+      模型自評 confidence 是 E5 且跨供應商不可比 —— 不得單獨當閘門。
+    items:
+      type: object
+      required: [when, then]
+      properties:
+        when: { type: string }
+        then: { type: string }
+
+  limits:
+    type: object
+    required: [max_rounds, budget_calls, stop_on]
+    description: >-
+      ★ 三個都不得留白。一條沒有停止條件的鏈不會 crash ——
+      它會一直跑，而且每一輪都在扣額度，畫面上跟認真工作長得一模一樣。
+    properties:
+      max_rounds:   { type: integer, minimum: 1 }
+      budget_calls: { type: integer, minimum: 1, description: 這條鏈允許的 B 組呼叫次數上限 }
+      stop_on:
+        type: array
+        minItems: 1
+        description: 建議值 no_progress／same_disagreement_twice／any_4xx。
+
+  review:
+    type: object
+    description: 路線 B 必填。
+    properties:
+      status:
+        enum: [DUAL_VENDOR, SINGLE_VENDOR, NOT_REVIEWED]
+        description: >-
+          ★ 判準是 provider 不同，不是模型名稱不同。同一家的 large 與 small 盲點是同一組。
+          接不到第二家就標 SINGLE_VENDOR —— 降級不是錯誤，隱瞞降級才是。
+      disagreements:
+        type: array
+        description: ★ 不一致處全部留著，不得由主模型單方裁決。兩個模型吵起來的地方通常正是真正模糊的地方。
+
+  fanout:
+    type: object
+    description: 路線 C 必填。
+    properties:
+      subtasks:  { type: array, description: ★ 判準是任兩個子題的答案不會互相改變。做不到就不是 C，是 A }
+      conflicts: { type: array, description: 子題之間矛盾處。不合併、不平均 }
+
+  chain_log:
+    type: string
+    description: >-
+      每次呼叫一列：provider / model / step / round / tool / timestamp / outcome。
+      ★ 這是缺口 DS-G7 的關閉入口 —— 沒有紀錄就沒有對照，
+      「路由選得好不好」就永遠只是一種感覺。
+
+  cost:
+    type: object
+    required: [measurement_state, value]
+    properties:
+      measurement_state:
+        enum: [measured, unmeasured, not_applicable]
+        description: ★ 只有三種合法狀態，沒有第四種。
+      value:
+        description: >-
+          ★ 不得寫 0。查不到寫「未量測」；一次 B 組都沒呼叫才是 not_applicable。
+          0 看起來像量測結果，「未量測」才是事實。
+      method: { type: string }
+
+  terminated_by:
+    enum: [completed, max_rounds, budget_calls, stop_on, error]
+    description: >-
+      ★ 觸到上限要當成結果，不是當成失敗，而且要照實寫。
+      把用完額度才停的鏈寫成「已完成」，是這一層版本的「模型說測試通過」。
+
+  evidence:
+    enum: [E1, E2, E3, E4, E5, E6]
+    description: ★ 沒跑過的編排契約是 E5（我方假設）。貼得出 chain_log 的實際輸出才是 E1。
+  open_questions: { type: array }

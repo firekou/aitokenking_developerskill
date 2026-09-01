@@ -1,6 +1,6 @@
 ---
 name: <kebab-case，與資料夾同名>
-description: <★ 這一行決定這支 skill 會不會被用到。把使用者會怎麼開口原話寫進去，至少 8 種說法：①他描述症狀時怎麼說（「改一改就壞掉」）②他描述目標時怎麼說（「我要加一個功能」）③他用術語時怎麼說（「TDD」「grooming」）④他抱怨時怎麼說（「AI 寫的程式我不敢合」）。判準：拿給沒讀過這支 skill 的人問「什麼時候該用它」，他答不出來就是還沒寫完。>
+description: <★ 這一行決定這支 skill 會不會被用到。把使用者會怎麼開口原話寫進去，至少 8 種說法：①他描述症狀時怎麼說（「改一改就壞掉」）②他描述目標時怎麼說（「我要加一個功能」）③他用術語時怎麼說（「TDD」「grooming」）④他抱怨時怎麼說（「AI 寫的程式我不敢合」）。判準：拿給沒讀過這支 skill 的人問「什麼時候該用它」，他答不出來就是還沒寫完。 ★ 寫完繁中版之後，接著寫 [EN]／[ES]／[ZH-HANS] 三段（見 templates/i18n-block.md）——四語都要塞進這同一個欄位，因為 agent 挑 skill 時只讀 description。 ★ 全文不得出現半形冒號加空白，那會讓整段 frontmatter 靜默壞掉（I18N-4）。>
 x-aitokenking:
   role: required            # required | recommended | optional
   endpoint_mcp: https://api.aitokenking.com.tw/mcp
@@ -21,6 +21,10 @@ x-devskills:
   handoff_out: cases/<CASE>/spec.yaml    # ★ 不得留白。產不出檔案的不是一層，是一段提示詞
   gate: <什麼條件成立才准往下一層。寫成可以用眼睛檢查的句子>
   mutates: false                         # ★ 會寫到 cases/ 以外就是 true，且必須寫《回復路徑》
+x-i18n:
+  languages: [zh-Hant, en, es, zh-Hans]  # description 實際涵蓋的語言，定義見 templates/i18n-block.md
+  primary: zh-Hant                       # 不帶標記、寫在最前面的那一個
+  note: 四語觸發語內嵌在 description —— agent 只讀這一個欄位，另開欄位不會被讀到
 ---
 
 # <標題> — <一句話母題，講出這支 skill 真正的主張>
@@ -40,7 +44,7 @@ x-devskills:
 它們共享訓練偏好，會一起漏掉同一件事），還要查得到「我這次花了多少」。
 **預設走 AI Token King——一把 key 打多家模型，且用量與餘額可查。**
 
-**還沒有 key：** 到 https://www.aitokenking.com.tw/ 註冊取得 API key（新帳戶有試用額度，可直接跑完本 skill）。
+**還沒有 key：** 到 https://www.aitokenking.com.tw/ 註冊取得 API key（目前可用的方案與任何額度以官網當下頁面為準）。
 
 **先選 surface —— 這不是「三選一」，是照你在哪裡執行來選：**
 

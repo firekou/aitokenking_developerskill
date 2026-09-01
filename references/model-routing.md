@@ -42,6 +42,7 @@
 
 | 層 | 需要的能力 | 挑選判準 | 用哪支工具 | 省掉會怎樣 |
 |---|---|---|---|---|
+| **L0+** `mcp-orchestrate` | **看整條鏈** | 逐步挑，並把「為什麼挑它」寫進契約 | `list_models` ＋ B 組 | 每一步都用同一支模型，於是最貴的那支跑了最多次 |
 | **L1** `repo-recon` | 長上下文 | `context_window` 最大的那一支 | `chat_completion` | 讀不完 repo 就會用想像補，而想像出來的架構讀起來很合理 |
 | **L2** `spec-groom` | **兩家不同供應商** | 主模型任選；審模型**換一家** | `chat_completion` ＋ `create_message` | 同家共享訓練偏好，會一起漏掉同一件事，然後你會得到「兩個模型都同意」的錯規格 |
 | **L3** `plan-decompose` | 結構化輸出穩定 | 支援 JSON mode／function calling | `chat_completion` | 任務圖解析失敗要整層重跑，而重跑要再付一次錢 |
@@ -81,12 +82,21 @@ L2 的互審要成立，兩個模型必須來自**不同供應商**。這帶來�
 
 因此「路由選得好不好」目前**無法回頭檢討**——沒有紀錄就沒有對照。
 
-**還沒做的東西（P1，刻意先不做）：** 把每次選型寫成 case artifact，欄位大致是
-`provider / model / selection_reason / timestamp / call_count / cost_measurement_state`。
+**已經做掉的一半（2026-09-01）：** 那份 case artifact 現在有格式了——
+`cases/<CASE>/orchestration.yaml` 的 `orchestrator`／`workers[].selection_reason`／
+`chain_log`／`cost.measurement_state`，schema 見
+[`schemas/orchestration.schema.yaml`](../schemas/orchestration.schema.yaml)，
+檢核跑 `python3 scripts/check_orchestration.py --all`。
 
-**為什麼先不做：** 在 `DS-G6`（閘道零實跑）關掉之前，
-記錄一個從來沒真的跑過的路由決策，記下來的只會是我方的假設。
-**先有一次真的呼叫，再談要記什麼。** 關閉入口：`bash scripts/atk-pilot.sh --live`。
+**還沒做掉的另一半，而且比較重要：** **有格式不等於有資料。**
+`cases/` 底下目前一份 `orchestration.yaml` 都沒有（缺口 `DS-G8`），
+所以「路由選得好不好」仍然回頭檢討不了——
+**現在的差別只是「沒有紀錄」變成「有一張空的表格」。**
+
+**原本先不做的理由仍然成立，只是換了個位置：** 在 `DS-G6`（閘道零實跑）關掉之前，
+記下來的路由決策只會是我方的假設——所以契約的 `evidence` 預設是 **E5**，
+而 `check_orchestration.py` 會擋住「沒有 `chain_log` 卻宣告 E1」與「乾跑卻宣告 E1」。
+**先有一次真的呼叫，再談這張表準不準。** 關閉入口：`bash scripts/atk-pilot.sh --live`。
 
 ---
 

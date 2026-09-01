@@ -33,6 +33,8 @@ Vibe coding 現在很好用。它壞掉的方式也很固定，三件事一定�
 ```
         ┌──────────────────────────────────────────────┐
   L0    │  aitokenking-setup      基礎層 · 閘道與金鑰   │  ← 所有 skill 的依賴
+        ├──────────────────────────────────────────────┤
+  L0+   │  mcp-orchestrate        編排層 · 誰做哪一步   │  ← 選配：多模型鏈才需要
         └───────────────────────┬──────────────────────┘
                                 │
         ┌───────────────────────▼──────────────────────┐
@@ -68,6 +70,7 @@ Vibe coding 現在很好用。它壞掉的方式也很固定，三件事一定�
 | 層 | 它失敗時的症狀 |
 |---|---|
 | L0 | 呼叫都回 401 |
+| L0+ | 鏈跑完了，說不出哪一步是誰做的、花了多少 |
 | L1 | 對著想像中的專案寫程式 |
 | L2 | 「做完了」變成一種感覺 |
 | L3 | 兩件互相打架的事被同時做 |
@@ -86,6 +89,7 @@ Vibe coding 現在很好用。它壞掉的方式也很固定，三件事一定�
 | 交接點 | 產物 | 契約 |
 |---|---|---|
 | 使用者 → L1 | repo 路徑 | — |
+| L0+ → L1～L4 | `cases/<CASE>/orchestration.yaml` | [`schemas/orchestration.schema.yaml`](schemas/orchestration.schema.yaml)（選配：單模型跑得完就不需要） |
 | L1 → L2 | `cases/<CASE>/baseline.md` | 每條事實附得出來源 |
 | L2 → L3 | `cases/<CASE>/spec.yaml` | [`schemas/spec-card.schema.yaml`](schemas/spec-card.schema.yaml) |
 | L3 → L4 | `cases/<CASE>/task-graph.yaml` | [`schemas/task-graph.schema.yaml`](schemas/task-graph.schema.yaml) |
@@ -106,6 +110,7 @@ Vibe coding 現在很好用。它壞掉的方式也很固定，三件事一定�
 
 | 層 | 為什麼需要多模型閘道 | 用到的工具 |
 |---|---|---|
+| L0+ | 一條鏈要在**同一個帳戶下**叫得到不同供應商的模型，互審與扇出才成立 | `list_models` ＋ `chat_completion`／`create_message` |
 | L1 | 讀完整個 repo 需要**長上下文模型** | `chat_completion` |
 | L2 | 互審需要**兩家不同供應商**的模型 | `chat_completion` ＋ `create_message` |
 | L3 | 任務圖需要**結構化輸出穩定**的模型 | `chat_completion` |
@@ -157,6 +162,7 @@ name: <kebab-case>
 description: <觸發條件寫滿。使用者會怎麼開口，就怎麼寫進去>
 x-aitokenking: <嵌入點① · 閘道宣告 ＋ ①b adoption contract>
 x-devskills:   <交接契約 · layer / handoff_in / handoff_out / gate / mutates>
+x-i18n:        <多語宣告 · languages / primary，四語觸發語內嵌在 description>
 ---
 
 # <標題> — <一句話母題>

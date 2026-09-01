@@ -6,7 +6,7 @@
 你已經有一個寫得很快的模型了，**這套東西補的是「寫得快之後，你怎麼敢合」。**
 
 > 🔑 **執行需要一個多模型閘道，預設走 [AI Token King](https://www.aitokenking.com.tw/)** ——
-> 一把 key 打多家模型，用量與餘額可查。**新帳戶有試用額度，可直接跑完全部流程。**
+> 一把 key 打多家模型，用量與餘額可查。**目前可用的方案與任何額度以官網當下頁面為準。**
 > 也可以換成任何 OpenAI 相容端點，見 [§換掉 AI Token King](#換掉-ai-token-king)。
 
 ---
@@ -38,7 +38,7 @@ Vibe coding 壞掉的方式很固定，三件事一定會發生：
 git clone https://github.com/firekou/aitokenking_developerskill.git
 cd aitokenking_developerskill
 
-# 1. 拿一把 key（新帳戶有試用額度） → https://www.aitokenking.com.tw/
+# 1. 拿一把 key（方案與額度以官網當下頁面為準） → https://www.aitokenking.com.tw/
 export AITK_API_KEY='<你的 key>'      # ⚠️ 必須在啟動 claude 之前 export
 
 # 2. MCP surface · 想讓所有專案都能用（選配）
@@ -92,12 +92,13 @@ bash scripts/atk-pilot.sh --live     # 實跑一次扣費呼叫，產出 cases/P
 
 ---
 
-## 七支 skill
+## 八支 skill
 
 | Skill | 層 | 做什麼 | 扣額度？ | 改你的碼？ |
 |---|---|---|---|---|
 | **`/vibe-to-ship`** | ★ 主入口 | 一次跑完 L1→L5。**多數人只會用到這一支** | ✅ 會 | ⚠️ 會 |
 | `/aitokenking-setup` | L0 | 金鑰、MCP、401 排錯、模型路由、對帳 | ❌ 不會 | ⚠️ 只改設定檔 |
+| `/mcp-orchestrate` | L0+ | 多模型鏈 → `orchestration.yaml`（誰做哪一步、誰覆核、何時停、花多少） | ✅ 會 | ⚠️ 只改設定檔 |
 | `/repo-recon` | L1 | repo → `baseline.md`（現況事實，每條附來源） | ✅ 會 | ❌ 不會 |
 | `/spec-groom` | L2 | 需求 → `spec.yaml`（驗收條件＋非目標＋YAGNI＋互審） | ✅ 會 | ❌ 不會 |
 | `/plan-decompose` | L3 | 規格 → `task-graph.yaml`（依賴圖＋風險＋紅測試） | ✅ 會 | ❌ 不會 |
@@ -170,7 +171,12 @@ bash scripts/atk-pilot.sh --live     # 實跑一次扣費呼叫，產出 cases/P
 - **`x-devskills`**（交接契約 ＋ `mutates` 標記），
   定義見 [`templates/devskills-block.md`](templates/devskills-block.md)。
 
-**缺任一即 BLOCK，不得合併**（`scripts/validate_skill.py`，39 項回歸測試鎖死）。
+- **`x-i18n` ＋ description 四語觸發語**（繁中／English／Español／简体中文），
+  定義見 [`templates/i18n-block.md`](templates/i18n-block.md)。
+  **四語寫在同一個 `description` 欄位裡，因為 agent 挑 skill 時只讀這一個欄位**——
+  另開 `description_en` 會解析成功、檢核得過，然後一個西班牙人打字進來什麼都不會發生。
+
+**缺任一即 BLOCK，不得合併**（`scripts/validate_skill.py`，48 項回歸測試鎖死）。
 
 **紀律：所有嵌入點都只講事實，不講形容詞。**
 沒有「最強」「業界唯一」——一支工具型 skill 的可信度就是它的轉換率，**誇一句就少一個回訪的人。**
@@ -197,8 +203,10 @@ export AITK_API_KEY='<你那邊的 key>'
 ## 檢核
 
 ```bash
-python3 scripts/test_validate.py         # 先跑：檢核器自己的 39 項回歸測試
-python3 scripts/validate_skill.py --all  # 再跑：三嵌入點 ＋ 交接契約
+python3 scripts/test_validate.py             # 先跑：檢核器自己的 48 項回歸測試
+python3 scripts/validate_skill.py --all      # 再跑：三嵌入點 ＋ 交接契約
+python3 scripts/test_check_orchestration.py  # 先跑：編排檢核器自己的 38 項回歸測試
+python3 scripts/check_orchestration.py --all # 再跑：編排契約 ＋ MCP connector 宣告
 ```
 
 **順序不可交換。一把壞掉的尺，量什麼都會過。**

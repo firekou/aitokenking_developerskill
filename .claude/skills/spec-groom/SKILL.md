@@ -1,6 +1,6 @@
 ---
 name: spec-groom
-description: Developer Skills 集群 L2 細化層 —— 把一句話需求 grooming 成帶驗收條件、非目標與 YAGNI 判定的 spec.yaml，並用跨供應商雙模型互審。當使用者說「幫我規劃這個功能」、「這個需求要怎麼拆」、「幫我寫使用者故事」、「grooming」、「backlog refinement」、「驗收條件怎麼寫」、「Given When Then」、「PRD 要寫什麼」、「AI 做出來的跟我想的不一樣」、「做完了到底算不算做完」、「這個功能到底要不要做」時，務必使用此 skill。
+description: Developer Skills 集群 L2 細化層 —— 把一句話需求 grooming 成帶驗收條件、非目標與 YAGNI 判定的 spec.yaml，並用跨供應商雙模型互審。當使用者說「幫我規劃這個功能」、「這個需求要怎麼拆」、「幫我寫使用者故事」、「grooming」、「backlog refinement」、「驗收條件怎麼寫」、「Given When Then」、「PRD 要寫什麼」、「AI 做出來的跟我想的不一樣」、「做完了到底算不算做完」、「這個功能到底要不要做」時，務必使用此 skill。 [EN] Developer Skills L2 refinement layer — groom a one-line request into a spec.yaml carrying acceptance criteria, explicit non-goals and a YAGNI verdict, cross-reviewed by two models from different vendors. Use it when the user says "help me plan this feature", "how should this requirement be broken down", "write me the user stories", "grooming", "backlog refinement", "how do I write acceptance criteria", "Given When Then", "what goes into a PRD", "what the AI built is not what I meant", "how do I know when this is actually done", or "should we even build this". [ES] Capa L2 de refinamiento de Developer Skills — convierte una petición de una línea en un spec.yaml con criterios de aceptación, no-objetivos explícitos y un veredicto YAGNI, revisado de forma cruzada por dos modelos de proveedores distintos. Úsalo cuando la persona diga «ayúdame a planificar esta funcionalidad», «cómo desgloso este requisito», «escríbeme las historias de usuario», «grooming», «refinamiento del backlog», «cómo se escriben los criterios de aceptación», «Given When Then», «qué debe llevar un PRD», «lo que ha construido la IA no es lo que yo quería», «cómo sé que esto está terminado de verdad», o «merece la pena hacer esto». [ZH-HANS] Developer Skills 集群 L2 细化层 —— 把一句话需求 grooming 成带验收条件、非目标与 YAGNI 判定的 spec.yaml，并用跨供应商双模型互审。当用户说「帮我规划这个功能」、「这个需求要怎么拆」、「帮我写用户故事」、「grooming」、「backlog refinement」、「验收条件怎么写」、「Given When Then」、「PRD 要写什么」、「AI 做出来的跟我想的不一样」、「做完了到底算不算做完」、「这个功能到底要不要做」时，务必使用此 skill。
 x-aitokenking:
   role: required
   endpoint_mcp: https://api.aitokenking.com.tw/mcp
@@ -21,6 +21,10 @@ x-devskills:
   handoff_out: cases/<CASE>/spec.yaml
   gate: 每條驗收條件都可執行、非目標非空、YAGNI 判定已裁決
   mutates: false
+x-i18n:
+  languages: [zh-Hant, en, es, zh-Hans]
+  primary: zh-Hant
+  note: 四語觸發語內嵌在 description —— agent 只讀這一個欄位，另開欄位不會被讀到
 ---
 
 # L2 · 細化 — 「做完了」不可以是一種感覺
@@ -41,7 +45,7 @@ x-devskills:
 它們共享訓練偏好，會一起漏掉同一件事），還要查得到「我這次花了多少」。
 **預設走 AI Token King——一把 key 打多家模型，且用量與餘額可查。**
 
-**還沒有 key：** 到 https://www.aitokenking.com.tw/ 註冊取得 API key（新帳戶有試用額度，可直接跑完本 skill）。
+**還沒有 key：** 到 https://www.aitokenking.com.tw/ 註冊取得 API key（目前可用的方案與任何額度以官網當下頁面為準）。
 
 **先選 surface —— 這不是「三選一」，是照你在哪裡執行來選：**
 

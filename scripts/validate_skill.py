@@ -4,6 +4,7 @@
 單一事實來源：
   templates/aitokenking-block.md   閘道（錢與模型從哪來）→ AITK-* 檢核
   templates/devskills-block.md     產線（檔案從哪來往哪去）→ DEV-*  檢核
+  templates/i18n-block.md          多語（誰讀得懂、誰叫得起來）→ I18N-* 檢核
 
 設計原則（與 repo 其餘檢核一致）：
   1. 只用標準庫。任何人 clone 下來 python3 就能跑。
@@ -31,6 +32,12 @@ ADOPTION_STAGES = {"onboarding", "activation", "workflow", "retention"}
 SURFACES = {"mcp", "api", "none"}
 SUCCESS_SIGNALS = {"connectivity_activation", "value_activation", "none"}
 LAYERS = {"L0", "L1", "L2", "L3", "L4", "L5", "orchestrator"}
+# 多語描述（templates/i18n-block.md）。primary 語言不帶標記，寫在 description 最前面。
+# ★ 觸發語內嵌在 description 而不是另開欄位，因為 agent 挑 skill 時只讀 description —— 
+#   另開 description_en 會解析成功、檢核得過，然後一個西班牙人打字進來什麼都不會發生。
+I18N_MARKERS = {"en": "[EN]", "es": "[ES]", "zh-Hans": "[ZH-HANS]"}
+I18N_PRIMARY = "zh-Hant"
+I18N_LANGS = set(I18N_MARKERS) | {I18N_PRIMARY}
 # B 組工具：每次呼叫都實際扣帳戶額度
 BILLABLE_TOOLS = {
     "chat_completion", "create_message", "create_response",
@@ -263,6 +270,57 @@ def check(path):
         elif dev.get("mutates") is None:
             findings.append(Finding("BLOCK", "DEV-1", "x-devskills 缺欄位 `mutates`"))
 
+    # ---- 多語描述 x-i18n（I18N-1 / 2 / 3 / 4）----
+    # 這一段回答的問題與上面兩個區塊都不同：**哪一國的人開口時，這支 skill 叫得起來。**
+    # 級別邏輯與 ADOPT-1／ADOPT-2 同源：缺漏是還沒寫（WARN），填錯是宣告不實（BLOCK）。
+    desc_m = re.search(r"^description\s*:\s*(.*)$", fm or "", re.M)
+    desc = desc_m.group(1) if desc_m else ""
+
+    # ★ I18N-4 先檢，因為它壞掉的方式最貴：description 是 YAML 的 plain scalar，
+    #   「冒號＋空白」會被解析成 mapping，**整段 frontmatter 一起讀不到** ——
+    #   而寬鬆的解析器不會報錯，它會安靜地把值截斷。全形「：」不受影響。
+    if desc and re.search(r":\s", desc):
+        findings.append(Finding("BLOCK", "I18N-4",
+            "description 含半形冒號＋空白 —— 它是 YAML plain scalar，"
+            "這會被解析成 mapping 而讓整段 frontmatter 靜默壞掉。改用破折號，"
+            "或改成全形「：」。"))
+
+    i18n = parse_block(fm, "x-i18n")
+    present = [lang for lang, mark in I18N_MARKERS.items() if mark in desc]
+    if i18n is None:
+        findings.append(Finding("WARN", "I18N-1",
+            "frontmatter 缺 x-i18n 區塊（多語描述宣告）。"
+            "從 templates/i18n-block.md 複製。"))
+        for lang, mark in sorted(I18N_MARKERS.items()):
+            if mark not in desc:
+                findings.append(Finding("WARN", "I18N-1",
+                    f"description 沒有 {mark} 段 —— 講這個語言的人不會叫起這支 skill"))
+    else:
+        declared = i18n.get("languages")
+        if not isinstance(declared, list) or not declared:
+            findings.append(Finding("BLOCK", "I18N-2",
+                "x-i18n.languages 缺漏或留白。宣告涵蓋哪些語言，才有東西可以檢核。"))
+            declared = []
+        for lang in declared:
+            if lang not in I18N_LANGS:
+                findings.append(Finding("BLOCK", "I18N-2",
+                    f"x-i18n.languages 出現未支援的語言碼 {lang!r}，須為 {sorted(I18N_LANGS)}。"
+                    "要新增語言，改 templates/i18n-block.md ＋ I18N_MARKERS ＋ 對應測試 —— "
+                    "改規則是提案，繞規則是欺騙。"))
+            elif lang != I18N_PRIMARY and I18N_MARKERS[lang] not in desc:
+                findings.append(Finding("BLOCK", "I18N-2",
+                    f"x-i18n.languages 宣告了 {lang!r}，但 description 找不到 "
+                    f"{I18N_MARKERS[lang]} 段。缺漏是還沒寫，填錯是宣告不實 —— "
+                    "「已支援這個語言」會出現在索引裡，而那是假的。"))
+        for lang in present:
+            if lang not in declared:
+                findings.append(Finding("WARN", "I18N-3",
+                    f"description 有 {I18N_MARKERS[lang]} 段，但 x-i18n.languages 沒宣告 {lang!r}"))
+        primary = i18n.get("primary")
+        if primary and primary not in I18N_LANGS:
+            findings.append(Finding("BLOCK", "I18N-2",
+                f"x-i18n.primary 值域錯誤：{primary!r}，須為 {sorted(I18N_LANGS)}"))
+
     # ---- 品質層（WARN，不擋）----
     if not re.search(r"^##\s*.*紅線", body, re.M):
         findings.append(Finding("WARN", "Q-1", "缺《紅線》章節"))
@@ -311,6 +369,7 @@ def main(argv):
         print("BLOCK 未清空，不得合併。")
         print("  AITK-*  三嵌入點  → templates/aitokenking-block.md")
         print("  DEV-*   交接契約  → templates/devskills-block.md")
+        print("  I18N-*  多語描述  → templates/i18n-block.md")
     return 1 if total_block else 0
 
 
