@@ -92,12 +92,13 @@ bash scripts/atk-pilot.sh --live     # 實跑一次扣費呼叫，產出 cases/P
 
 ---
 
-## 七支 skill
+## 八支 skill
 
 | Skill | 層 | 做什麼 | 扣額度？ | 改你的碼？ |
 |---|---|---|---|---|
 | **`/vibe-to-ship`** | ★ 主入口 | 一次跑完 L1→L5。**多數人只會用到這一支** | ✅ 會 | ⚠️ 會 |
 | `/aitokenking-setup` | L0 | 金鑰、MCP、401 排錯、模型路由、對帳 | ❌ 不會 | ⚠️ 只改設定檔 |
+| `/mcp-orchestrate` | L0+ | 多模型鏈 → `orchestration.yaml`（誰做哪一步、誰覆核、何時停、花多少） | ✅ 會 | ⚠️ 只改設定檔 |
 | `/repo-recon` | L1 | repo → `baseline.md`（現況事實，每條附來源） | ✅ 會 | ❌ 不會 |
 | `/spec-groom` | L2 | 需求 → `spec.yaml`（驗收條件＋非目標＋YAGNI＋互審） | ✅ 會 | ❌ 不會 |
 | `/plan-decompose` | L3 | 規格 → `task-graph.yaml`（依賴圖＋風險＋紅測試） | ✅ 會 | ❌ 不會 |
@@ -197,8 +198,10 @@ export AITK_API_KEY='<你那邊的 key>'
 ## 檢核
 
 ```bash
-python3 scripts/test_validate.py         # 先跑：檢核器自己的 39 項回歸測試
-python3 scripts/validate_skill.py --all  # 再跑：三嵌入點 ＋ 交接契約
+python3 scripts/test_validate.py             # 先跑：檢核器自己的 39 項回歸測試
+python3 scripts/validate_skill.py --all      # 再跑：三嵌入點 ＋ 交接契約
+python3 scripts/test_check_orchestration.py  # 先跑：編排檢核器自己的 38 項回歸測試
+python3 scripts/check_orchestration.py --all # 再跑：編排契約 ＋ MCP connector 宣告
 ```
 
 **順序不可交換。一把壞掉的尺，量什麼都會過。**

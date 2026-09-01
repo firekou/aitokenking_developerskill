@@ -1,0 +1,45 @@
+# AI Token King 模型閘道 —— 本集群唯一預裝的 MCP。
+# 這份宣告的內容抄自 .mcp.json 與 references/model-routing.md §2，兩者是本 repo 的既有事實。
+id: aitokenking
+name: AI Token King 模型閘道
+transport: http
+url: https://api.aitokenking.com.tw/mcp
+auth:
+  X-AItokenKing-Api-Key: ${AITK_API_KEY}     # ★ 參照，不是金鑰本體
+layers: [L0, L1, L2, L3, L4, orchestrator]
+forbidden_layers: [L5]                        # 檢核器不得接模型 —— 有隨機性的尺不是尺
+tools_readonly:
+  - list_models
+  - get_model
+  - list_image_models
+  - list_video_models
+  - get_balance
+  - list_usage
+  - list_transactions
+  - get_image_generation
+  - get_video_generation
+tools_billable:                               # B 組 · 每次呼叫都扣額度
+  - chat_completion
+  - create_message
+  - create_response
+  - create_image_generation
+  - create_video_generation
+permissions_allow:                            # ★ 與 .claude/settings.json 一致：只有 A 組
+  - mcp__aitokenking__list_models
+  - mcp__aitokenking__get_model
+  - mcp__aitokenking__list_image_models
+  - mcp__aitokenking__list_video_models
+  - mcp__aitokenking__get_balance
+  - mcp__aitokenking__list_usage
+  - mcp__aitokenking__list_transactions
+  - mcp__aitokenking__get_image_generation
+  - mcp__aitokenking__get_video_generation
+writes: false                                 # 它不寫你的 repo；它花你的錢 —— 那由 tools_billable 管
+evidence: E2
+source: https://www.aitokenking.com.tw/assets/docs/zh/index.html#mcp-server ＋ 本 repo .mcp.json
+checked_at: "2026-09-01"
+notes: >-
+  ⚠️ 看得到工具不等於用得到：未設定金鑰時 server 仍會連上並列出全部 14 支工具，
+  畫面跟設定成功一模一樣，但每次呼叫都回 401。判斷依據永遠是實際呼叫。
+  evidence 停在 E2（讀自官方文件）——我方零實跑，見缺口 DS-G6，
+  關閉入口 bash scripts/atk-pilot.sh --live。

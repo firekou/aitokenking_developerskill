@@ -21,6 +21,11 @@
 }
 ```
 
+**候選 connector 的宣告放在 [`tools/`](../tools/)**（一個檔案一個，schema 見
+[`schemas/mcp-connector.schema.yaml`](../schemas/mcp-connector.schema.yaml)）。
+**宣告不等於安裝**——那裡寫的是「這個 MCP 該給哪一層用、會不會寫入、金鑰怎麼放」，
+要不要真的接進 `.mcp.json` 是你的決定。
+
 **為什麼不預裝一堆：**
 每多一個 MCP，agent 的工具清單就長一截，而**工具愈多，選錯的機率愈高**。
 本集群的立場是：**先裝閘道，其他等你真的撞到需求再加。**
@@ -32,6 +37,7 @@
 | 層 | 可調閱 | 拿來做什麼 | ⛔ 這一層不准調 |
 |---|---|---|---|
 | **L0** `aitokenking-setup` | `aitokenking`（A 組 9 支） | 查模型清單、查餘額、對帳 | B 組 5 支不進白名單 |
+| **L0+** `mcp-orchestrate` | `aitokenking`（A 組查清單 ＋ B 組跑鏈）、`tools/` 裡宣告過的 connector | 挑模型、排步驟、跑互審／扇出 | **未在 `tools/` 宣告過的 MCP**——沒宣告就沒人檢核過它會不會寫入 |
 | **L1** `repo-recon` | 本機檔案系統、`git`、程式碼索引類 MCP | 讀出現況事實 | **任何會寫入的 MCP**——這一層只讀不寫 |
 | **L2** `spec-groom` | issue／工單類 MCP（讀）、`aitokenking` | 讀既有需求脈絡、跨供應商互審 | 會自動建立工單的寫入操作 |
 | **L3** `plan-decompose` | issue／工單類 MCP（讀）、`aitokenking` | 對照既有 backlog 避免重工 | 自動開單——**開單是人的決定** |
@@ -75,6 +81,10 @@ Issue 內文、PR 描述、CI log、檔案內容——**這些都是外部文字
    並補《回復路徑》。**這是 BLOCK 級的，`validate_skill.py` 會擋。**
 3. **它的金鑰怎麼放？** 一律 `${ENV_VAR}` 參照，**金鑰本體不入庫。**
 
+三題答完就寫成 `tools/<id>.connector.yaml`，跑
+`python3 scripts/check_orchestration.py tools/<id>.connector.yaml`。
+**第 2 題與第 3 題現在擋得住了**（`CONN-3`／`CONN-2`），第 1 題仍然只能靠人判斷。
+
 ---
 
 ## §5 已知缺口
@@ -82,5 +92,7 @@ Issue 內文、PR 描述、CI log、檔案內容——**這些都是外部文字
 - **本表沒有列出具體的第三方 MCP 名稱。** 不是遺漏，是刻意：
   MCP 生態變動速度遠快於本 repo 的更新頻率，**寫上去的清單三個月後會變成錯的**，
   而錯的清單比沒有清單更糟。**這裡定義的是分層紀律，具體選型由使用者決定。**
-- **`validate_skill.py` 檢核不到「這一層調了它不該調的 MCP」。**
-  §2 的禁區欄位目前靠人在 review 時看。見缺口 `DS-G5`。
+- **檢核不到「這一層調了它不該調的 MCP」。**
+  `check_orchestration.py` 擋得住 connector 宣告本身寫錯（金鑰入庫、缺回復路徑、
+  扣費工具進白名單），但**擋不住「宣告寫得很對，實際跑的時候調了別的」**——
+  §2 的禁區欄位仍然靠人在 review 時看。見缺口 `DS-G5`。

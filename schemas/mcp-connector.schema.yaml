@@ -1,0 +1,62 @@
+# MCP Connector Schema（tools/*.connector.yaml）
+# 版本 v1.0 · 2026-09-01
+#
+# 這份 schema 回答一個問題：「這個 MCP 可以被哪一層調閱，而它會不會動到我的東西？」
+# 分層調閱紀律見 references/mcp-inventory.md §2；本 schema 是那張表的機器可讀版。
+#
+# ★ 三條不可協商的欄位規則，全部由 check_orchestration.py 擋：
+#   1. 金鑰一律 ${ENV_VAR} 參照 —— 金鑰本體不入庫（鐵律 1）
+#   2. B 組扣費工具不得出現在 permissions_allow（鐵律 2）
+#   3. writes: true 必須有 rollback（鐵律 4 的 MCP 版本）
+
+$schema: "https://json-schema.org/draft/2020-12/schema"
+title: mcp-connector
+type: object
+required: [id, transport, layers, writes, evidence, source]
+properties:
+  id:   { type: string, pattern: "^[a-z0-9][a-z0-9-]*$" }
+  name: { type: string }
+  transport:
+    enum: [http, sse, stdio]
+    description: 照 MCP server 實際提供的傳輸方式填，不是照偏好填。
+  url:     { type: string, description: transport 為 http／sse 時必填 }
+  command: { type: string, description: transport 為 stdio 時必填 }
+  auth:
+    type: object
+    description: >-
+      ★ 值一律寫成 ${ENV_VAR} 參照。出現疑似金鑰本體即 BLOCK ——
+      入庫的金鑰視為已外洩，只能輪替，不能撤回。
+    additionalProperties: { type: string }
+  layers:
+    type: array
+    minItems: 1
+    description: 哪幾層可以調閱它。值域 L0/L1/L2/L3/L4/L5/orchestrator，對照 mcp-inventory.md §2。
+  forbidden_layers:
+    type: array
+    description: >-
+      明確禁止調閱的層。例：任何會寫入的 MCP 都要把 L1 寫進來 —— 勘查層只讀不寫。
+      L5 一律禁止調閱模型類 MCP：檢核器有隨機性就不會被當成規則，只會被當成雜訊繞過去。
+  tools_readonly: { type: array, description: A 組·唯讀，可進白名單 }
+  tools_billable:
+    type: array
+    description: B 組·每次呼叫都扣額度。★ 不得進 permissions_allow。
+  permissions_allow:
+    type: array
+    description: >-
+      建議加進 .claude/settings.json 的白名單項目。
+      ★ 判準不是「常不常用」，是「錯了回不回得去」——
+      一個常用但不可回復的操作，正是最需要每次都停下來看一眼的那一種。
+  writes:
+    type: boolean
+    description: 會不會寫入使用者的 repo／機器／外部系統。判不出來就填 true。
+  rollback:
+    type: string
+    description: >-
+      ★ writes: true 時必填，而且要寫得出「哪些動作還原不了」。
+      寫不出第三列，代表還沒想清楚這個 connector 會做什麼。
+  evidence:
+    enum: [E1, E2, E3, E4, E5, E6]
+    description: ★ 讀官方文件寫出來的是 E2；自己接起來跑過一次才是 E1。
+  source: { type: string, description: 這份宣告的出處（文件網址／repo 路徑），附取得日期 }
+  checked_at: { type: string, description: "YYYY-MM-DD。外部資料會變，沒標時間的事實三週後沒有人知道還算不算數。" }
+  notes: { type: string }

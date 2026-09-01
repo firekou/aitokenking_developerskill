@@ -45,6 +45,21 @@ DS-G6 就關掉了一半**——另一半（可重現）需要至少跑三次並
 
 ---
 
+### 另一種低門檻 PR：貢獻一份 MCP connector 宣告
+
+`tools/` 收的是「哪一個 MCP、可以被哪一層調閱、會不會動到你的東西」的機器可讀宣告。
+
+```bash
+cp tools/aitokenking.connector.yaml tools/<你的>.connector.yaml
+python3 scripts/check_orchestration.py tools/<你的>.connector.yaml
+```
+
+規則與退件理由見 [`tools/README.md`](tools/README.md)。**一句話版本：**
+`evidence: E1` 只能給你**真的接起來呼叫過**的 connector，讀文件寫出來的是 `E2`；
+`writes` 判不出來就填 `true`。
+
+---
+
 ## 加一支新 skill
 
 ```bash
@@ -104,12 +119,14 @@ python3 scripts/validate_skill.py .claude/skills/<your-skill>/SKILL.md
 ## 檢核與 CI
 
 ```bash
-python3 scripts/test_validate.py        # 先跑：檢核器自己的 39 項回歸測試
-python3 scripts/validate_skill.py --all # 再跑：三嵌入點 ＋ 交接契約
+python3 scripts/test_validate.py             # 先跑：檢核器自己的 39 項回歸測試
+python3 scripts/validate_skill.py --all      # 再跑：三嵌入點 ＋ 交接契約
+python3 scripts/test_check_orchestration.py  # 先跑：編排檢核器自己的 38 項回歸測試
+python3 scripts/check_orchestration.py --all # 再跑：編排契約 ＋ MCP connector 宣告
 ```
 
 **順序不可交換。一把壞掉的尺，量什麼都會過。**
-改動 `validate_skill.py` 而沒跑回歸測試的 PR，一律退回。
+改動 `validate_skill.py` 或 `check_orchestration.py` 而沒跑對應回歸測試的 PR，一律退回。
 
 **不得為了通過檢核而竄改宣告欄位**（尤其 `billable` 與 `mutates`）。檢核器抓得到，
 而且這麼做騙的是下一個跑這支 skill 的人。

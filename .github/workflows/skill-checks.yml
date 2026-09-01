@@ -21,3 +21,15 @@ jobs:
 
       - name: 三嵌入點 ＋ 交接契約檢核（全部 skill）
         run: python3 scripts/validate_skill.py --all
+
+      # 編排契約與 connector 宣告用 YAML 表達，這裡需要 PyYAML。
+      # ★ 缺 PyYAML 時 check_orchestration.py 會 exit 2 並明講「這不是通過，是沒有尺」，
+      #   而不是安靜地跳過 —— 一個跳過的檢核步驟在 CI 畫面上是綠色的。
+      - name: 安裝 PyYAML
+        run: python3 -m pip install --quiet pyyaml
+
+      - name: 回歸測試（編排檢核器自己）
+        run: python3 scripts/test_check_orchestration.py
+
+      - name: 編排契約 ＋ MCP connector 宣告檢核
+        run: python3 scripts/check_orchestration.py --all
