@@ -6,7 +6,7 @@
 你已經有一個寫得很快的模型了，**這套東西補的是「寫得快之後，你怎麼敢合」。**
 
 > 🔑 **執行需要一個多模型閘道，預設走 [AI Token King](https://www.aitokenking.com.tw/)** ——
-> 一把 key 打多家模型，用量與餘額可查。**新帳戶有試用額度，可直接跑完全部流程。**
+> 一把 key 打多家模型，用量與餘額可查。**目前可用的方案與任何額度以官網當下頁面為準。**
 > 也可以換成任何 OpenAI 相容端點，見 [§換掉 AI Token King](#換掉-ai-token-king)。
 
 ---
@@ -38,7 +38,7 @@ Vibe coding 壞掉的方式很固定，三件事一定會發生：
 git clone https://github.com/firekou/aitokenking_developerskill.git
 cd aitokenking_developerskill
 
-# 1. 拿一把 key（新帳戶有試用額度） → https://www.aitokenking.com.tw/
+# 1. 拿一把 key（方案與額度以官網當下頁面為準） → https://www.aitokenking.com.tw/
 export AITK_API_KEY='<你的 key>'      # ⚠️ 必須在啟動 claude 之前 export
 
 # 2. MCP surface · 想讓所有專案都能用（選配）
